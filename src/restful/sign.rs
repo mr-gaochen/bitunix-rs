@@ -37,20 +37,22 @@ impl BitUnixClient {
         let client = reqwest::Client::new();
         let resp = client
             .get(&url)
-            .header("Api-Key", &self.api_key)
-            .header("Nonce", &nonce)
-            .header("Timestamp", &timestamp)
-            .header("Sign", sign)
+            .header("api-key", &self.api_key)
+            .header("nonce", &nonce)
+            .header("time", &timestamp)
+            .header("sign", sign)
+            .header("language", "en-US")
+            .header("Content-Type", "application/json")
             .send()
             .await?
-            .json::<T>()
+            .text()
             .await?;
 
         if self.debug {
             println!("[GET] Response: {:#?}", resp);
         }
 
-        Ok(resp)
+        Ok(serde_json::from_str::<T>(&resp)?)
     }
 
     pub async fn post<T>(
