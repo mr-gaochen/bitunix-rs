@@ -19,11 +19,8 @@ impl BitUnixClient {
         let nonce = nanoid::nanoid!(8);
 
         let query_str = Self::build_query_string(parameters);
-        let body = ""; // GET 请求无 body
-        let pre_sign = format!(
-            "{}{}{}{}{}",
-            nonce, timestamp, self.api_key, query_str, body
-        );
+        
+        let pre_sign = format!("{}{}{}{}", nonce, timestamp, self.api_key, query_str);
         let sign = self.sign(&pre_sign);
 
         let url = self.build_full_url(request_path, parameters);
