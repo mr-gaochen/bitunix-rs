@@ -1,0 +1,13 @@
+[package]
+name = "bituinx-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.98"
+chrono = "0.4.40"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.128"
+sha256 = "1.6.0"
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+nanoid = "0.4.0"
