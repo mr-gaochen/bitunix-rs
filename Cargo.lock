@@ -94,10 +94,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "hex",
  "nanoid",
  "reqwest",
  "serde",
  "serde_json",
+ "sha2",
  "sha256",
 ]
 

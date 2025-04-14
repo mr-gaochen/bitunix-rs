@@ -1,7 +1,8 @@
 use anyhow::Result;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use sha256::digest;
+use sha2::{Sha256, Digest}; // 引入 SHA256 和 Digest trait
+use hex; // 引入 hex 编码
 use std::collections::BTreeMap;
 
 use crate::client::BitUnixClient;
@@ -19,9 +20,12 @@ impl BitUnixClient {
         let nonce = nanoid::nanoid!(8);
 
         let query_str = Self::build_query_string(parameters);
-        
+
         let pre_sign = format!("{}{}{}{}", nonce, timestamp, self.api_key, query_str);
-        let sign = self.sign(&pre_sign);
+
+        let digest = Self::sha256_hex(&pre_sign);
+        let sign_input = format!("{}{}", digest, self.secret_key);
+        let sign = Self::sha256_hex(&sign_input);
 
         let url = self.build_full_url(request_path, parameters);
 
@@ -70,7 +74,10 @@ impl BitUnixClient {
             "{}{}{}{}{}",
             nonce, timestamp, self.api_key, query_str, compact_body
         );
-        let sign = self.sign(&pre_sign);
+        
+        let digest = Self::sha256_hex(&pre_sign);
+        let sign_input = format!("{}{}", digest, self.secret_key);
+        let sign = Self::sha256_hex(&sign_input);
 
         let url = self.build_full_url(request_path, query_params);
 
@@ -101,10 +108,12 @@ impl BitUnixClient {
         Ok(resp)
     }
 
-    /// 双重 SHA256 签名
-    fn sign(&self, message: &str) -> String {
-        let first = digest(message);
-        digest(&format!("{}{}", first, self.secret_key))
+    /// SHA256 签名
+    fn sha256_hex(input: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(input.as_bytes());
+        let result = hasher.finalize();
+        hex::encode(result)
     }
 
     /// 构建 query 参数的签名字符串（key+value 按照 ASCII 排序）
