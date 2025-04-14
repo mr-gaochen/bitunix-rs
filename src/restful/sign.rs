@@ -1,8 +1,8 @@
 use anyhow::Result;
+use hex; // 引入 hex 编码
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use sha2::{Sha256, Digest}; // 引入 SHA256 和 Digest trait
-use hex; // 引入 hex 编码
+use sha2::{Digest, Sha256}; // 引入 SHA256 和 Digest trait
 use std::collections::BTreeMap;
 
 use crate::client::BitUnixClient;
@@ -21,7 +21,7 @@ impl BitUnixClient {
 
         let query_str = Self::build_query_string(parameters);
 
-        let pre_sign = format!("{}{}{}{}", nonce, timestamp, self.api_key, query_str);
+        let pre_sign = format!("{}{}{}{}{}", nonce, timestamp, self.api_key, query_str, "");
 
         let digest = Self::sha256_hex(&pre_sign);
         let sign_input = format!("{}{}", digest, self.secret_key);
@@ -74,7 +74,7 @@ impl BitUnixClient {
             "{}{}{}{}{}",
             nonce, timestamp, self.api_key, query_str, compact_body
         );
-        
+
         let digest = Self::sha256_hex(&pre_sign);
         let sign_input = format!("{}{}", digest, self.secret_key);
         let sign = Self::sha256_hex(&sign_input);
