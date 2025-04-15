@@ -126,7 +126,7 @@ impl BitUnixClient {
     fn build_full_url(&self, path: &str, params: &BTreeMap<String, String>) -> String {
         let domain = self.domain.trim_end_matches('/');
         let path = path.trim_start_matches('/');
-    
+
         if params.is_empty() {
             format!("{}/{}", domain, path)
         } else {
@@ -146,12 +146,12 @@ impl BitUnixClient {
 
     /// 计算输入字符串的 SHA-256 十六进制字符串
     fn sha256_hex(input: &str) -> String {
-        // let mut hasher = Sha256::new();
-        // hasher.update(input.as_bytes());
-        // let result = hasher.finalize();
-        // hex::encode(result)
-        //
-        digest(input)
+        let mut hasher = Sha256::new();
+        hasher.update(input.as_bytes());
+        let result = hasher.finalize();
+        hex::encode(result)
+
+        //digest(input)
     }
 
     pub fn get_timestamp(&self) -> String {
