@@ -30,8 +30,10 @@ impl BitUnixClient {
         let url = self.build_full_url(request_path, parameters);
 
         if self.debug {
+            println!("FIRST_SIGN:{}", pre_sign.clone());
             println!("[GET] URL: {}", url);
             println!("[GET] Params: {:?}", parameters);
+            println!("SECOND SIGN: {:?}", sign_input.clone());
             println!("[GET] Sign: {}", sign);
         }
 
