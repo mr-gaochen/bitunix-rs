@@ -2,7 +2,8 @@ use anyhow::Result;
 use hex; // 引入 hex 编码
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use sha2::{Digest, Sha256}; // 引入 SHA256 和 Digest trait
+use sha2::{Digest, Sha256};
+use sha256::digest; // 引入 SHA256 和 Digest trait
 use std::collections::BTreeMap;
 
 use crate::client::BitUnixClient;
@@ -109,14 +110,6 @@ impl BitUnixClient {
         Ok(resp)
     }
 
-    /// SHA256 签名
-    fn sha256_hex(input: &str) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(input.as_bytes());
-        let result = hasher.finalize();
-        hex::encode(result)
-    }
-
     /// 构建 query 参数的签名字符串（key+value 按照 ASCII 排序）
     fn build_query_string(params: &BTreeMap<String, String>) -> String {
         let mut result = String::new();
@@ -144,6 +137,16 @@ impl BitUnixClient {
     /// 将 JSON 对象转为紧凑格式（无空格）
     fn compact_json(body: &Value) -> Result<String> {
         Ok(serde_json::to_string(body)?.replace(' ', ""))
+    }
+
+    /// 计算输入字符串的 SHA-256 十六进制字符串
+    fn sha256_hex(input: &str) -> String {
+        // let mut hasher = Sha256::new();
+        // hasher.update(input.as_bytes());
+        // let result = hasher.finalize();
+        // hex::encode(result)
+        //
+        digest(input)
     }
 
     pub fn get_timestamp(&self) -> String {
