@@ -124,15 +124,18 @@ impl BitUnixClient {
 
     /// 构建完整 URL（含 query 参数）
     fn build_full_url(&self, path: &str, params: &BTreeMap<String, String>) -> String {
+        let domain = self.domain.trim_end_matches('/');
+        let path = path.trim_start_matches('/');
+    
         if params.is_empty() {
-            format!("{}{}", self.domain, path)
+            format!("{}/{}", domain, path)
         } else {
             let query_string = params
                 .iter()
-                .map(|(k, v)| format!("{}={}", k, v))
+                .map(|(k, v)| format!("{}={}", urlencoding::encode(k), urlencoding::encode(v)))
                 .collect::<Vec<_>>()
                 .join("&");
-            format!("{}{}?{}", self.domain, path, query_string)
+            format!("{}/{}?{}", domain, path, query_string)
         }
     }
 
