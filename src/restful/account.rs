@@ -8,7 +8,7 @@ impl BitUnixClient {
     // GET /api/v1/futures/account
     pub async fn account(&self, margin_coin: String) -> Result<RestApi<AccountData>> {
         let mut params: BTreeMap<String, String> = BTreeMap::new();
-        params.insert("margin_coin".into(), margin_coin.into());
+        params.insert("marginCoin".into(), margin_coin.into());
         Ok(self
             .get::<RestApi<AccountData>>("/api/v1/futures/account", &params)
             .await?)
