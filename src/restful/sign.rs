@@ -21,7 +21,7 @@ impl BitUnixClient {
 
         let query_str = Self::build_query_string(parameters);
 
-        let pre_sign = format!("{}{}{}{}{}", nonce, timestamp, self.api_key, query_str, "");
+        let pre_sign = format!("{}{}{}{}", nonce, timestamp, self.api_key, query_str);
 
         let digest = Self::sha256_hex(&pre_sign);
         let sign_input = format!("{}{}", digest, self.secret_key);
@@ -42,7 +42,6 @@ impl BitUnixClient {
             .header("nonce", &nonce)
             .header("time", &timestamp)
             .header("sign", sign)
-            .header("language", "en-US")
             .header("Content-Type", "application/json")
             .send()
             .await?
