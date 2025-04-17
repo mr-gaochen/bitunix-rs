@@ -33,7 +33,6 @@ impl BitUnixClient {
             println!("FIRST_SIGN:{}", pre_sign.clone());
             println!("[GET] URL: {}", url);
             println!("[GET] Params: {:?}", parameters);
-            println!("SECOND SIGN: {:?}", sign_input.clone());
             println!("[GET] Sign: {}", sign);
         }
 
@@ -71,8 +70,10 @@ impl BitUnixClient {
 
         let query_str = Self::build_query_string(query_params);
         let compact_body = Self::compact_json(body)?;
-        let first_digest_input = format!("{}{}{}{}{}", nonce, timestamp, self.api_key, query_str, body_str);
-
+        let first_digest_input = format!(
+            "{}{}{}{}{}",
+            nonce, timestamp, self.api_key, query_str, body_str
+        );
 
         let digest = Self::sha256_hex(&pre_sign);
         let sign_input = format!("{}{}", digest, self.secret_key);
