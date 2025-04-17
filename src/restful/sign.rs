@@ -113,7 +113,7 @@ impl BitUnixClient {
     fn build_query_string(params: &BTreeMap<String, String>) -> String {
         let result = params
             .iter()
-            .map(|(k, v)| format!("{}={}", k, v))
+            .map(|(k, v)| format!("{}{}", k, v))
             .collect::<Vec<_>>()
             .join("");
         result
