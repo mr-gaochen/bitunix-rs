@@ -111,12 +111,20 @@ impl BitUnixClient {
 
     /// 构建 query 参数的签名字符串（key+value 按照 ASCII 排序）
     fn build_query_string(params: &BTreeMap<String, String>) -> String {
-        let result = params
-            .iter()
-            .map(|(k, v)| format!("{}{}", k, v))
-            .collect::<Vec<_>>()
-            .join("");
-        result
+        // 1. query_string (sorted and urlencoded)
+        let query_string = if let Some(params) = params {
+            let mut sorted: Vec<(&String, &String)> = params.iter().collect();
+            sorted.sort_by_key(|(k, _)| *k);
+
+            sorted
+                .iter()
+                .map(|(k, v)| format!("{}={}", encode(k), encode(v)))
+                .collect::<Vec<String>>()
+                .join("&")
+        } else {
+            "".to_string()
+        };
+        query_string
     }
 
     /// 构建完整 URL（含 query 参数）
