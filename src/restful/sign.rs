@@ -1,4 +1,5 @@
 use anyhow::Result;
+use hex::encode;
 use rand::{distributions::Alphanumeric, Rng};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
@@ -111,20 +112,11 @@ impl BitUnixClient {
 
     /// 构建 query 参数的签名字符串（key+value 按照 ASCII 排序）
     fn build_query_string(params: &BTreeMap<String, String>) -> String {
-        // 1. query_string (sorted and urlencoded)
-        let query_string = if let Some(params) = params {
-            let mut sorted: Vec<(&String, &String)> = params.iter().collect();
-            sorted.sort_by_key(|(k, _)| *k);
-
-            sorted
-                .iter()
-                .map(|(k, v)| format!("{}={}", encode(k), encode(v)))
-                .collect::<Vec<String>>()
-                .join("&")
-        } else {
-            "".to_string()
-        };
-        query_string
+        params
+            .iter()
+            .map(|(k, v)| format!("{}={}", encode(k), encode(v)))
+            .collect::<Vec<_>>()
+            .join("&")
     }
 
     /// 构建完整 URL（含 query 参数）
