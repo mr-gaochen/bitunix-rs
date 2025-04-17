@@ -56,6 +56,8 @@ impl BitUnixClient {
         Ok(serde_json::from_str::<T>(&resp)?)
     }
 
+    
+    
     pub async fn post<T>(
         &self,
         request_path: &str,
@@ -66,16 +68,16 @@ impl BitUnixClient {
         T: DeserializeOwned + std::fmt::Debug,
     {
         let timestamp = self.get_timestamp();
-        let nonce = nanoid::nanoid!(8);
+        let nonce = nanoid::nanoid!(32);
 
         let query_str = Self::build_query_string(query_params);
         let compact_body = Self::compact_json(body)?;
         let first_digest_input = format!(
             "{}{}{}{}{}",
-            nonce, timestamp, self.api_key, query_str, body_str
+            nonce, timestamp, self.api_key, query_str, compact_body
         );
 
-        let digest = Self::sha256_hex(&pre_sign);
+        let digest = Self::sha256_hex(&first_digest_input);
         let sign_input = format!("{}{}", digest, self.secret_key);
         let sign = Self::sha256_hex(&sign_input);
 
@@ -137,7 +139,7 @@ impl BitUnixClient {
 
     /// 将 JSON 对象转为紧凑格式（无空格）
     fn compact_json(body: &Value) -> Result<String> {
-        Ok(serde_json::to_string(body)?.replace(' ', ""))
+        Ok( body.to_string().replace(' ', ""))
     }
 
     /// 计算输入字符串的 SHA-256 十六进制字符串
