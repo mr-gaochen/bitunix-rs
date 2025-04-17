@@ -17,7 +17,7 @@ impl BitUnixClient {
         T: DeserializeOwned + std::fmt::Debug,
     {
         let timestamp = self.get_timestamp();
-        let nonce = nanoid::nanoid!(32);
+        let nonce = Self::generate_nonce();
 
         let query_str = Self::build_query_string(parameters);
         let body_str = "";
