@@ -1,4 +1,5 @@
 use anyhow::Result;
+use rand::{distributions::Alphanumeric, Rng};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -56,8 +57,6 @@ impl BitUnixClient {
         Ok(serde_json::from_str::<T>(&resp)?)
     }
 
-    
-    
     pub async fn post<T>(
         &self,
         request_path: &str,
@@ -68,7 +67,7 @@ impl BitUnixClient {
         T: DeserializeOwned + std::fmt::Debug,
     {
         let timestamp = self.get_timestamp();
-        let nonce = nanoid::nanoid!(32);
+        let nonce = Self::generate_nonce();
 
         let query_str = Self::build_query_string(query_params);
         let compact_body = Self::compact_json(body)?;
@@ -139,7 +138,7 @@ impl BitUnixClient {
 
     /// 将 JSON 对象转为紧凑格式（无空格）
     fn compact_json(body: &Value) -> Result<String> {
-        Ok( body.to_string().replace(' ', ""))
+        Ok(body.to_string().replace(' ', ""))
     }
 
     /// 计算输入字符串的 SHA-256 十六进制字符串
@@ -151,5 +150,14 @@ impl BitUnixClient {
 
     pub fn get_timestamp(&self) -> String {
         chrono::Utc::now().timestamp_millis().to_string()
+    }
+
+    pub fn generate_nonce() -> String {
+        let nonce: String = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(32)
+            .map(char::from)
+            .collect();
+        nonce
     }
 }
