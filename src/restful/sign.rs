@@ -1,9 +1,7 @@
 use anyhow::Result;
-use hex; // 引入 hex 编码
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use sha256::digest; // 引入 SHA256 和 Digest trait
 use std::collections::BTreeMap;
 
 use crate::client::BitUnixClient;
@@ -27,8 +25,7 @@ impl BitUnixClient {
             nonce, timestamp, self.api_key, query_str, body_str
         );
         let digest = Self::sha256_hex(&pre_sign);
-        let sign_input = format!("{}{}", digest, self.secret_key);
-        let sign = Self::sha256_hex(&sign_input);
+        let sign = Self::sha256_hex(&format!("{}{}", digest, self.secret_key));
 
         let url = self.build_full_url(request_path, parameters);
 
@@ -74,10 +71,8 @@ impl BitUnixClient {
 
         let query_str = Self::build_query_string(query_params);
         let compact_body = Self::compact_json(body)?;
-        let pre_sign = format!(
-            "{}{}{}{}{}",
-            nonce, timestamp, self.api_key, query_str, compact_body
-        );
+        let first_digest_input = format!("{}{}{}{}{}", nonce, timestamp, self.api_key, query_str, body_str);
+
 
         let digest = Self::sha256_hex(&pre_sign);
         let sign_input = format!("{}{}", digest, self.secret_key);
@@ -114,11 +109,11 @@ impl BitUnixClient {
 
     /// 构建 query 参数的签名字符串（key+value 按照 ASCII 排序）
     fn build_query_string(params: &BTreeMap<String, String>) -> String {
-        let mut result = String::new();
-        for (k, v) in params {
-            result.push_str(k);
-            result.push_str(v);
-        }
+        let result = params
+            .iter()
+            .map(|(k, v)| format!("{}={}", k, v))
+            .collect::<Vec<_>>()
+            .join("");
         result
     }
 
@@ -148,10 +143,7 @@ impl BitUnixClient {
     fn sha256_hex(input: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(input.as_bytes());
-        let result = hasher.finalize();
-        hex::encode(result)
-
-        //digest(input)
+        format!("{:x}", hasher.finalize())
     }
 
     pub fn get_timestamp(&self) -> String {
