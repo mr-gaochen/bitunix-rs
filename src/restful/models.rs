@@ -17,6 +17,9 @@ pub struct AccountData {
     pub margin: String,
     pub transfer: String,
     pub position_mode: String,
+    #[serde(rename = "isolationUnrealizedPNL")]
     pub isolation_unrealized_pnl: String,
+    #[serde(rename = "crossUnrealizedPNL")]
+    pub cross_unrealized_pnl: String,
     pub bonus: String,
 }
