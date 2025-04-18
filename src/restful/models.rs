@@ -17,7 +17,6 @@ pub struct AccountData {
     pub margin: String,
     pub transfer: String,
     pub position_mode: String,
-    pub cross_unrealized_pnl: String,
     pub isolation_unrealized_pnl: String,
     pub bonus: String,
 }
