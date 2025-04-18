@@ -1,6 +1,7 @@
 use anyhow::Result;
 use hex::encode;
 use rand::{distributions::Alphanumeric, Rng};
+use reqwest::header::{HeaderMap, HeaderValue};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -31,6 +32,8 @@ impl BitUnixClient {
 
         let url = self.build_full_url(request_path, parameters);
 
+        let headers = self.create_header(&sign, &timestamp, &nonce);
+
         if self.debug {
             println!("FIRST_SIGN:{}", pre_sign.clone());
             println!("[GET] URL: {}", url);
@@ -41,11 +44,7 @@ impl BitUnixClient {
         let client = reqwest::Client::new();
         let resp = client
             .get(&url)
-            .header("api-key", &self.api_key)
-            .header("nonce", &nonce)
-            .header("timestamp", &timestamp)
-            .header("sign", sign)
-            .header("Content-Type", "application/json")
+            .headers(headers)
             .send()
             .await?
             .text()
@@ -62,7 +61,6 @@ impl BitUnixClient {
         &self,
         request_path: &str,
         query_params: &BTreeMap<String, String>,
-        body: &Value,
     ) -> Result<T>
     where
         T: DeserializeOwned + std::fmt::Debug,
@@ -70,34 +68,26 @@ impl BitUnixClient {
         let timestamp = self.get_timestamp();
         let nonce = Self::generate_nonce();
 
-        let query_str = Self::build_query_string(query_params);
-        let compact_body = Self::compact_json(body)?;
-        let first_digest_input = format!(
-            "{}{}{}{}{}",
-            nonce, timestamp, self.api_key, query_str, compact_body
-        );
+        let data = serde_json::to_string(&query_params).unwrap();
+        let first_digest_input = format!("{}{}{}{}{}", nonce, timestamp, self.api_key, "", data);
 
         let digest = Self::sha256_hex(&first_digest_input);
         let sign_input = format!("{}{}", digest, self.secret_key);
         let sign = Self::sha256_hex(&sign_input);
 
         let url = self.build_full_url(request_path, query_params);
-
+        let headers = self.create_header(&sign, &timestamp, &nonce);
         if self.debug {
             println!("[POST] URL: {}", url);
-            println!("[POST] Body: {}", compact_body);
+            println!("[POST] Body: {}", data);
             println!("[POST] Sign: {}", sign);
         }
 
         let client = reqwest::Client::new();
         let resp = client
             .post(&url)
-            .header("Api-Key", &self.api_key)
-            .header("Nonce", &nonce)
-            .header("Timestamp", &timestamp)
-            .header("Sign", sign)
-            .header("Content-Type", "application/json")
-            .body(compact_body)
+            .headers(headers)
+            .body(data)
             .send()
             .await?
             .json::<T>()
@@ -119,6 +109,20 @@ impl BitUnixClient {
             .join("&")
     }
 
+    fn create_header(&self, sign: &str, timestamp: &str, nonce: &str) -> HeaderMap {
+        // 处理请求头 headers
+        let mut header_map = HeaderMap::new();
+        header_map.insert("api-key", HeaderValue::from_str(&self.api_key).unwrap());
+        header_map.insert("sign", HeaderValue::from_str(&sign).unwrap());
+        header_map.insert("timestamp", HeaderValue::from_str(&timestamp).unwrap());
+        header_map.insert("nonce", HeaderValue::from_str(&nonce).unwrap());
+        header_map.insert(
+            "Content-Type",
+            HeaderValue::from_static("application/json; charset=UTF-8"),
+        );
+        header_map
+    }
+
     /// 构建完整 URL（含 query 参数）
     fn build_full_url(&self, path: &str, params: &BTreeMap<String, String>) -> String {
         let domain = self.domain.trim_end_matches('/');
@@ -134,11 +138,6 @@ impl BitUnixClient {
                 .join("&");
             format!("{}/{}?{}", domain, path, query_string)
         }
-    }
-
-    /// 将 JSON 对象转为紧凑格式（无空格）
-    fn compact_json(body: &Value) -> Result<String> {
-        Ok(body.to_string().replace(' ', ""))
     }
 
     /// 计算输入字符串的 SHA-256 十六进制字符串
