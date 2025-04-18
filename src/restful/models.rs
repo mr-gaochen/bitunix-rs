@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub struct RestApi<T> {
     pub code: i32,
     pub msg: String,
-    pub data: Vec<T>,
+    pub data: T,
 }
 
 /// GET /api/v1/futures/account
