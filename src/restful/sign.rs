@@ -43,7 +43,7 @@ impl BitUnixClient {
             .get(&url)
             .header("api-key", &self.api_key)
             .header("nonce", &nonce)
-            .header("time", &timestamp)
+            .header("timestamp", &timestamp)
             .header("sign", sign)
             .header("Content-Type", "application/json")
             .send()
