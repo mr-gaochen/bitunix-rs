@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct RestApi<T> {
-    pub code: String,
+    pub code: i32,
     pub msg: String,
     pub data: Vec<T>,
 }
