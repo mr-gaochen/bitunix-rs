@@ -22,7 +22,7 @@ impl BitUnixClient {
     ) -> Result<RestApi<TradePlceOrder>> {
         let mut params: BTreeMap<String, Value> = BTreeMap::new();
         params.insert("symbol".into(), json!(symbol));
-        params.insert("qty".into(), json!(qty));
+        params.insert("volume".into(), json!(qty));
         params.insert("side".into(), json!(1));
         params.insert("orderType".into(), json!(2));
         if let Some(trade_side) = trade_side {
