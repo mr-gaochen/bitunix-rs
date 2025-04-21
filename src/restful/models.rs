@@ -138,8 +138,10 @@ pub struct PositionData {
     pub leverage: i64,
     pub fee: String,
     pub funding: String,
+    #[serde(rename = "realizedPNL")]
     pub realized_pnl: String,
     pub margin: String,
+    #[serde(rename = "unrealizedPNL")]
     pub unrealized_pnl: String,
     pub liq_price: String,
     pub margin_rate: String,
