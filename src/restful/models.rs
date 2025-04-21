@@ -93,6 +93,7 @@ pub struct TradeInfo {
     pub order_id: String,
     pub qty: String,
     pub price: String,
+    #[serde(rename = "symbol")]
     pub symbol: String,
     #[serde(rename = "positionMode")]
     pub position_mode: String,
@@ -102,15 +103,22 @@ pub struct TradeInfo {
     pub fee: String,
     #[serde(rename = "realizedPNL")]
     pub realized_pnl: String,
-    #[serde(rename = "type")]
+    #[serde(rename = "orderType")]
     pub order_type: String,
-    pub effect: String,
     #[serde(rename = "reduceOnly")]
     pub reduce_only: bool,
     #[serde(rename = "clientId")]
-    pub client_id: String,
-    pub source: String,
+    pub client_id: Option<String>,
+    #[serde(rename = "source")]
+    pub source: Option<String>,
+    #[serde(rename = "ctime")]
     pub ctime: String,
+    #[serde(rename = "effect")]
+    pub effect: Option<String>,
+    #[serde(rename = "marginCoin")]
+    pub margin_coin: Option<String>,
     #[serde(rename = "roleType")]
     pub role_type: String,
+    pub side: String,
+    pub status: Option<String>,
 }
