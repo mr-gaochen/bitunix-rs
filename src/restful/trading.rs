@@ -43,11 +43,6 @@ impl BitUnixClient {
         if let Some(client_id) = client_id {
             params.insert("clientId".into(), client_id.into());
         }
-
-        // Ok(self
-        //     .post::<RestApi<Value>>("/api/v1/futures/trade/place_order", &params)
-        //     .await?)
-
         Ok(self
             .post::<RestApi<TradePlceOrder>>("/api/v1/futures/trade/place_order", &params)
             .await?)
