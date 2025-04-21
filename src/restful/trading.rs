@@ -2,6 +2,7 @@ use crate::client::BitUnixClient;
 
 use super::models::{RestApi, TradePlceOrder};
 use anyhow::Result;
+use serde_json::Value;
 use std::collections::BTreeMap;
 
 impl BitUnixClient {
@@ -18,7 +19,7 @@ impl BitUnixClient {
         postion_id: Option<T>,
         effect: Option<T>,
         client_id: Option<T>,
-    ) -> Result<RestApi<TradePlceOrder>>
+    ) -> Result<RestApi<Value>>
     where
         T: Into<String>,
     {
@@ -44,7 +45,11 @@ impl BitUnixClient {
         }
 
         Ok(self
-            .post::<RestApi<TradePlceOrder>>("/api/v1/futures/trade/place_order", &params)
+            .post::<RestApi<Value>>("/api/v1/futures/trade/place_order", &params)
             .await?)
+
+        // Ok(self
+        //     .post::<RestApi<TradePlceOrder>>("/api/v1/futures/trade/place_order", &params)
+        //     .await?)
     }
 }
