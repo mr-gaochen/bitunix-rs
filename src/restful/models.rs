@@ -124,3 +124,26 @@ pub struct TradeInfo {
     pub side: String,
     pub status: Option<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PositionData {
+    pub position_id: String,
+    pub symbol: String,
+    pub qty: String,
+    pub entry_value: String,
+    pub side: String,
+    pub position_mode: String,
+    pub margin_mode: String,
+    pub leverage: String,
+    pub fee: String,
+    pub funding: String,
+    pub realized_pnl: String,
+    pub margin: String,
+    pub unrealized_pnl: String,
+    pub liq_price: String,
+    pub margin_rate: String,
+    pub avg_open_price: String,
+    pub ctime: i64,
+    pub mtime: i64,
+}

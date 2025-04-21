@@ -1,4 +1,4 @@
-use super::models::{AccountData, HistoryPostions, RestApi, TradeListData};
+use super::models::{AccountData, HistoryPostions, PositionData, RestApi, TradeListData};
 use crate::client::BitUnixClient;
 use anyhow::Result;
 use std::collections::BTreeMap;
@@ -40,7 +40,22 @@ impl BitUnixClient {
             params.insert("symbol".into(), symbol.into());
         }
         Ok(self
-            .get::<RestApi<TradeListData>>("/api/v1/futures/trade/get_history_trades", &params)
+            .get::<RestApi<TradeListData>>(
+                "/api/v1/futures/position/get_pending_positions",
+                &params,
+            )
+            .await?)
+    }
+
+    ///  /api/v1/futures/position/get_pending_positions
+    pub async fn pending_positions(&self, symbol: &str) -> Result<RestApi<Vec<PositionData>>> {
+        let mut params: BTreeMap<String, String> = BTreeMap::new();
+        params.insert("symbol".into(), symbol.into());
+        Ok(self
+            .get::<RestApi<Vec<PositionData>>>(
+                "/api/v1/futures/position/get_pending_positions",
+                &params,
+            )
             .await?)
     }
 }
