@@ -22,7 +22,7 @@ impl BitUnixClient {
     ) -> Result<RestApi<HistoryPostions>> {
         let mut params: BTreeMap<String, String> = BTreeMap::new();
         if let Some(symbol) = symbol {
-            params.insert("symbol".into(), symbol.into());
+            params.insert("positionId".into(), symbol.into());
         }
         Ok(self
             .get::<RestApi<HistoryPostions>>(

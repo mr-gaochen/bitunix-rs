@@ -55,15 +55,15 @@ pub struct HistoryPositionModel {
     pub margin_mode: String, // 可选: enum MarginMode { ISOLATION, CROSS }
     #[serde(rename = "positionMode")]
     pub position_mode: String, // 可选: enum PositionMode { ONE_WAY, HEDGE }
-    pub leverage: i32,
+    pub leverage: String,
     pub fee: String,
     pub funding: String,
     #[serde(rename = "realizedPNL")]
     pub realized_pnl: String,
     #[serde(rename = "liqPrice")]
     pub liq_price: String,
-    pub ctime: i64,
-    pub mtime: i64,
+    pub ctime: String,
+    pub mtime: String,
 }
 ///GET /api/v1/futures/position/get_history_positions
 #[derive(Debug, Serialize, Deserialize)]
