@@ -13,7 +13,7 @@ impl BitUnixClient {
         symbol: &str,
         qty: &str,
         side: &str,
-        trade_side: Option<&str>,
+        trade_side: &str,
         order_type: &str,
         price: Option<&str>,
         postion_id: Option<&str>,
@@ -25,9 +25,7 @@ impl BitUnixClient {
         params.insert("qty".into(), json!(qty));
         params.insert("side".into(), json!(side));
         params.insert("orderType".into(), json!(order_type));
-        if let Some(trade_side) = trade_side {
-            params.insert("tradeSide".into(), json!(trade_side));
-        }
+        params.insert("tradeSide".into(), json!(trade_side));
         if let Some(price) = price {
             params.insert("price".into(), json!(price));
         }
