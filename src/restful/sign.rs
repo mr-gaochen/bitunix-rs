@@ -67,6 +67,7 @@ impl BitUnixClient {
         let nonce = Self::generate_nonce();
 
         let data = serde_json::to_string(&query_params).unwrap();
+        println!("请求参数:{:?}", data);
         let first_digest_input = format!("{}{}{}{}{}", nonce, timestamp, self.api_key, "", data);
 
         let digest = Self::sha256_hex(&first_digest_input);
