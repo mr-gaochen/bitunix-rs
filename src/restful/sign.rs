@@ -2,6 +2,7 @@ use anyhow::Result;
 use rand::{distributions::Alphanumeric, Rng};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::de::DeserializeOwned;
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
@@ -58,7 +59,7 @@ impl BitUnixClient {
     pub async fn post<T>(
         &self,
         request_path: &str,
-        query_params: &BTreeMap<String, String>,
+        query_params: &BTreeMap<String, Value>,
     ) -> Result<T>
     where
         T: DeserializeOwned + std::fmt::Debug,
