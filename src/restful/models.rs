@@ -81,7 +81,7 @@ pub struct HistoryPostions {
 pub struct TradeListData {
     #[serde(rename = "tradeList")]
     pub trade_list: Vec<TradeInfo>,
-    pub total: i32,
+    pub total: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -98,7 +98,7 @@ pub struct TradeInfo {
     pub position_mode: String,
     #[serde(rename = "marginMode")]
     pub margin_mode: String,
-    pub leverage: i32,
+    pub leverage: String,
     pub fee: String,
     #[serde(rename = "realizedPNL")]
     pub realized_pnl: String,
