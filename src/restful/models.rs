@@ -69,7 +69,7 @@ pub struct HistoryPositionModel {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HistoryPostions {
-    pub total: i64,
+    pub total: String,
     #[serde(rename = "positionList")]
     pub position_list: Vec<HistoryPositionModel>,
 }
