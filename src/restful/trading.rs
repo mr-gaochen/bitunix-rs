@@ -19,7 +19,7 @@ impl BitUnixClient {
         postion_id: Option<T>,
         effect: Option<T>,
         client_id: Option<T>,
-    ) -> Result<RestApi<Value>>
+    ) -> Result<RestApi<TradePlceOrder>>
     where
         T: Into<String>,
     {
@@ -44,12 +44,12 @@ impl BitUnixClient {
             params.insert("clientId".into(), client_id.into());
         }
 
-        Ok(self
-            .post::<RestApi<Value>>("/api/v1/futures/trade/place_order", &params)
-            .await?)
-
         // Ok(self
-        //     .post::<RestApi<TradePlceOrder>>("/api/v1/futures/trade/place_order", &params)
+        //     .post::<RestApi<Value>>("/api/v1/futures/trade/place_order", &params)
         //     .await?)
+
+        Ok(self
+            .post::<RestApi<TradePlceOrder>>("/api/v1/futures/trade/place_order", &params)
+            .await?)
     }
 }
