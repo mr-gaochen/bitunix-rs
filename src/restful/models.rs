@@ -98,7 +98,7 @@ pub struct TradeInfo {
     pub position_mode: String,
     #[serde(rename = "marginMode")]
     pub margin_mode: String,
-    pub leverage: i32,
+    pub leverage: i64,
     pub fee: String,
     #[serde(rename = "realizedPNL")]
     pub realized_pnl: String,
