@@ -71,20 +71,18 @@ impl BitUnixClient {
         let first_digest_input = format!("{}{}{}{}{}", nonce, timestamp, self.api_key, "", data);
 
         let digest = Self::sha256_hex(&first_digest_input);
-        let sign_input = format!("{}{}", digest, self.secret_key);
-        let sign = Self::sha256_hex(&sign_input);
+        let sign = Self::sha256_hex(&format!("{}{}", digest, self.secret_key));
 
-        let url = self.build_full_url(request_path, query_params);
-        let headers = self.create_header_post(&sign, &timestamp, &nonce);
+        let headers = self.create_header(&sign, &timestamp, &nonce);
         if self.debug {
-            println!("[POST] URL: {}", url);
+            println!("[POST] URL: {}", request_path);
             println!("[POST] Body: {}", data);
             println!("[POST] Sign: {}", sign);
         }
 
         let client = reqwest::Client::new();
         let resp = client
-            .post(&url)
+            .post(request_path)
             .headers(headers)
             .body(data)
             .send()
@@ -114,19 +112,6 @@ impl BitUnixClient {
         header_map.insert("api-key", HeaderValue::from_str(&self.api_key).unwrap());
         header_map.insert("sign", HeaderValue::from_str(&sign).unwrap());
         header_map.insert("timestamp", HeaderValue::from_str(&timestamp).unwrap());
-        header_map.insert("nonce", HeaderValue::from_str(&nonce).unwrap());
-        header_map.insert(
-            "Content-Type",
-            HeaderValue::from_static("application/json; charset=UTF-8"),
-        );
-        header_map
-    }
-    fn create_header_post(&self, sign: &str, timestamp: &str, nonce: &str) -> HeaderMap {
-        // 处理请求头 headers
-        let mut header_map = HeaderMap::new();
-        header_map.insert("api-key", HeaderValue::from_str(&self.api_key).unwrap());
-        header_map.insert("sign", HeaderValue::from_str(&sign).unwrap());
-        header_map.insert("time", HeaderValue::from_str(&timestamp).unwrap());
         header_map.insert("nonce", HeaderValue::from_str(&nonce).unwrap());
         header_map.insert(
             "Content-Type",
