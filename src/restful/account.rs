@@ -40,13 +40,6 @@ impl BitUnixClient {
         if let Some(symbol) = symbol {
             params.insert("symbol".into(), symbol.into());
         }
-
-        let result = self
-            .get::<Value>("/api/v1/futures/trade/get_history_trades", &params)
-            .await;
-
-        print!("响应结果:{:?}", result);
-
         Ok(self
             .get::<RestApi<TradeListData>>("/api/v1/futures/trade/get_history_trades", &params)
             .await?)
