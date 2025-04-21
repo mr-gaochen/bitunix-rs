@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub struct RestApi<T> {
     pub code: i32,
     pub msg: String,
-    pub data: T,
+    pub data: Option<T>,
 }
 
 /// 获取账户信息
