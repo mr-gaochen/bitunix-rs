@@ -74,15 +74,18 @@ impl BitUnixClient {
         let sign = Self::sha256_hex(&format!("{}{}", digest, self.secret_key));
 
         let headers = self.create_header(&sign, &timestamp, &nonce);
+
+        let url = format!("{}{}", self.domain.trim_end_matches('/'), request_path);
+
         if self.debug {
-            println!("[POST] URL: {}", request_path);
+            println!("[POST] URL: {}", url);
             println!("[POST] Body: {}", data);
             println!("[POST] Sign: {}", sign);
         }
 
         let client = reqwest::Client::new();
         let resp = client
-            .post(request_path)
+            .post(url)
             .headers(headers)
             .body(data)
             .send()
