@@ -40,10 +40,7 @@ impl BitUnixClient {
             params.insert("symbol".into(), symbol.into());
         }
         Ok(self
-            .get::<RestApi<TradeListData>>(
-                "/api/v1/futures/position/get_history_positions",
-                &params,
-            )
+            .get::<RestApi<TradeListData>>("/api/v1/futures/trade/get_history_trades", &params)
             .await?)
     }
 }

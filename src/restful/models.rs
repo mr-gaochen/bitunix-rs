@@ -77,6 +77,7 @@ pub struct HistoryPostions {
 ///Get History Trades
 ///GET /api/v1/futures/trade/get_history_trades
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TradeListData {
     #[serde(rename = "tradeList")]
     pub trade_list: Vec<TradeInfo>,
@@ -84,6 +85,7 @@ pub struct TradeListData {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TradeInfo {
     #[serde(rename = "tradeId")]
     pub trade_id: String,
