@@ -12,7 +12,7 @@ impl BitUnixClient {
         symbol: T,
         qty: T,
         side: T,
-        trade_side: T,
+        trade_side: Option<T>,
         order_type: T,
         price: Option<T>,
         postion_id: Option<T>,
@@ -26,8 +26,10 @@ impl BitUnixClient {
         params.insert("symbol".into(), symbol.into());
         params.insert("qty".into(), qty.into());
         params.insert("side".into(), side.into());
-        params.insert("tradeSide".into(), trade_side.into());
         params.insert("orderType".into(), order_type.into());
+        if let Some(trade_side) = trade_side {
+            params.insert("tradeSide".into(), trade_side.into());
+        }
         if let Some(price) = price {
             params.insert("price".into(), price.into());
         }
@@ -45,5 +47,4 @@ impl BitUnixClient {
             .post::<RestApi<TradePlceOrder>>("/api/v1/futures/trade/place_order", &params)
             .await?)
     }
-        
 }
