@@ -73,3 +73,42 @@ pub struct HistoryPostions {
     #[serde(rename = "positionList")]
     pub position_list: Vec<HistoryPositionModel>,
 }
+
+///Get History Trades
+///GET /api/v1/futures/trade/get_history_trades
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TradeListData {
+    #[serde(rename = "tradeList")]
+    pub trade_list: Vec<TradeInfo>,
+    pub total: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TradeInfo {
+    #[serde(rename = "tradeId")]
+    pub trade_id: String,
+    #[serde(rename = "orderId")]
+    pub order_id: String,
+    pub qty: String,
+    pub price: String,
+    pub symbol: String,
+    #[serde(rename = "positionMode")]
+    pub position_mode: String,
+    #[serde(rename = "marginMode")]
+    pub margin_mode: String,
+    pub leverage: String,
+    pub fee: String,
+    #[serde(rename = "realizedPNL")]
+    pub realized_pnl: String,
+    #[serde(rename = "type")]
+    pub order_type: String,
+    pub effect: String,
+    #[serde(rename = "reduceOnly")]
+    pub reduce_only: bool,
+    #[serde(rename = "clientId")]
+    pub client_id: String,
+    pub source: String,
+    pub ctime: String,
+    #[serde(rename = "roleType")]
+    pub role_type: String,
+}

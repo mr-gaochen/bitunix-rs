@@ -1,4 +1,4 @@
-use super::models::{AccountData, HistoryPostions, RestApi};
+use super::models::{AccountData, HistoryPostions, RestApi, TradeListData};
 use crate::client::BitUnixClient;
 use anyhow::Result;
 use std::collections::BTreeMap;
@@ -22,10 +22,25 @@ impl BitUnixClient {
     ) -> Result<RestApi<HistoryPostions>> {
         let mut params: BTreeMap<String, String> = BTreeMap::new();
         if let Some(symbol) = symbol {
-            params.insert("positionId".into(), symbol.into());
+            params.insert("symbol".into(), symbol.into());
         }
         Ok(self
             .get::<RestApi<HistoryPostions>>(
+                "/api/v1/futures/position/get_history_positions",
+                &params,
+            )
+            .await?)
+    }
+
+    /// 获取历史交易
+    ///api/v1/futures/position/get_history_positions
+    pub async fn history_trades(&self, symbol: Option<String>) -> Result<RestApi<TradeListData>> {
+        let mut params: BTreeMap<String, String> = BTreeMap::new();
+        if let Some(symbol) = symbol {
+            params.insert("symbol".into(), symbol.into());
+        }
+        Ok(self
+            .get::<RestApi<TradeListData>>(
                 "/api/v1/futures/position/get_history_positions",
                 &params,
             )
