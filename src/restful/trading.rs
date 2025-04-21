@@ -40,7 +40,6 @@ impl BitUnixClient {
         if let Some(client_id) = client_id {
             params.insert("clientId".into(), json!(client_id));
         }
-        params.insert("reduceOnly".into(), json!(false));
 
         Ok(self
             .post::<RestApi<TradePlceOrder>>("/api/v1/futures/trade/place_order", &params)
