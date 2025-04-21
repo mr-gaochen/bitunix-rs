@@ -16,13 +16,13 @@ impl BitUnixClient {
 
     // 获取历史持仓
     // /api/v1/futures/position/get_history_positions
-    pub async fn histroy_postions<T>(&self, symbol: Option<T>) -> Result<RestApi<HistoryPostions>>
-    where
-        T: Into<String>,
-    {
+    pub async fn histroy_postions(
+        &self,
+        symbol: Option<String>,
+    ) -> Result<RestApi<HistoryPostions>> {
         let mut params: BTreeMap<String, String> = BTreeMap::new();
-        if let Some(postion_id) = symbol {
-            params.insert("positionId".into(), postion_id.into());
+        if let Some(symbol) = symbol {
+            params.insert("symbol".into(), symbol.into());
         }
         Ok(self
             .get::<RestApi<HistoryPostions>>(

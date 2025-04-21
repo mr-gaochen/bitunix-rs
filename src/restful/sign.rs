@@ -1,9 +1,7 @@
 use anyhow::Result;
-use hex::encode;
 use rand::{distributions::Alphanumeric, Rng};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::de::DeserializeOwned;
-use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
