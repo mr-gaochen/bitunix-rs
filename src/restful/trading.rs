@@ -23,8 +23,8 @@ impl BitUnixClient {
         let mut params: BTreeMap<String, Value> = BTreeMap::new();
         params.insert("symbol".into(), json!(symbol));
         params.insert("qty".into(), json!(qty));
-        params.insert("side".into(), json!(side));
-        params.insert("orderType".into(), json!(order_type));
+        params.insert("side".into(), json!(2));
+        params.insert("orderType".into(), json!(2));
         if let Some(trade_side) = trade_side {
             params.insert("tradeSide".into(), json!(trade_side));
         }
