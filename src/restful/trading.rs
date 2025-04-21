@@ -10,15 +10,15 @@ impl BitUnixClient {
     ///POST /api/v1/futures/trade/place_order
     pub async fn trade_place_order(
         &self,
-        symbol: String,
-        qty: String,
-        side: String,
-        trade_side: Option<String>,
-        order_type: String,
-        price: Option<String>,
-        postion_id: Option<String>,
-        effect: Option<String>,
-        client_id: Option<String>,
+        symbol: &str,
+        qty: &str,
+        side: &str,
+        trade_side: Option<&str>,
+        order_type: &str,
+        price: Option<&str>,
+        postion_id: Option<&str>,
+        effect: Option<&str>,
+        client_id: Option<&str>,
     ) -> Result<RestApi<TradePlceOrder>> {
         let mut params: BTreeMap<String, Value> = BTreeMap::new();
         params.insert("symbol".into(), json!(symbol));
