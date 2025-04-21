@@ -1,7 +1,6 @@
 use super::models::{AccountData, HistoryPostions, RestApi, TradeListData};
 use crate::client::BitUnixClient;
 use anyhow::Result;
-use serde_json::Value;
 use std::collections::BTreeMap;
 
 impl BitUnixClient {

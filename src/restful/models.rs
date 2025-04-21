@@ -30,7 +30,9 @@ pub struct AccountData {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TradePlceOrder {
+    #[serde(rename = "orderId")]
     pub order_id: String,
+    #[serde(rename = "clientId")]
     pub client_id: String,
 }
 
