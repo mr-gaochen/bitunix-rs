@@ -38,7 +38,7 @@ pub struct TradePlceOrder {
 
 /// 获取历史持仓信息
 ///GET /api/v1/futures/position/get_history_positions
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct HistoryPositionModel {
     #[serde(rename = "positionId")]
