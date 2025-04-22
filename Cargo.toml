@@ -1,7 +1,13 @@
 [package]
+homepage = "https://github.com/mr-gaochen/bitunix-rs.git"
 name = "bitunix-rs"
 version = "0.1.0"
 edition = "2021"
+authors = ["GaoCheng <wooyulan@163.com>"]
+description = "BitUinx Rust SDK"
+license = "MIT"
+keywords = ["sdk", "bitunix", "bitunix-rs"]
+
 
 [dependencies]
 anyhow = "1.0.98"
