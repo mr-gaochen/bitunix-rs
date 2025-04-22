@@ -47,6 +47,7 @@ impl BitUnixClient {
             .await?)
     }
 
+    ///仓位信息
     ///  /api/v1/futures/position/get_pending_positions
     pub async fn pending_positions(&self, symbol: &str) -> Result<RestApi<Vec<PositionData>>> {
         let mut params: BTreeMap<String, String> = BTreeMap::new();

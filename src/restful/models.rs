@@ -125,6 +125,8 @@ pub struct TradeInfo {
     pub status: Option<String>,
 }
 
+/// 仓位信息
+/// /api/v1/futures/position/get_pending_positions
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PositionData {
