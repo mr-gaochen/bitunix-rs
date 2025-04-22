@@ -127,7 +127,7 @@ pub struct TradeInfo {
 
 /// 仓位信息
 /// /api/v1/futures/position/get_pending_positions
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PositionData {
     pub position_id: String,
