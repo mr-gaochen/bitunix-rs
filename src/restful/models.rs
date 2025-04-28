@@ -151,3 +151,20 @@ pub struct PositionData {
     pub ctime: String,
     pub mtime: String,
 }
+
+/// K线信息
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KLineData {
+    pub open: f64,
+    pub high: f64,
+    pub close: f64,
+    pub low: f64,
+    pub time: i64,
+    #[serde(rename = "quoteVol")]
+    pub quote_vol: String,
+    #[serde(rename = "baseVol")]
+    pub base_vol: String,
+    #[serde(rename = "type")]
+    pub kline_type: String, // 因为 "type" 是 Rust 关键字，需要改字段名，使用 serde 重命名
+}
