@@ -13,14 +13,14 @@ impl BitUnixClient {
         start_time: i64,
         end_time: i64,
         interval: &str,
-    ) -> Result<RestApi<KLineData>> {
+    ) -> Result<RestApi<Vec<KLineData>>> {
         let mut params: BTreeMap<String, String> = BTreeMap::new();
         params.insert("symbol".into(), symbol.into());
         params.insert("startTime".into(), start_time.to_string());
         params.insert("endTime".into(), end_time.to_string());
         params.insert("interval".into(), interval.into());
         Ok(self
-            .get::<RestApi<KLineData>>("/api/v1/futures/market/kline", &params)
+            .get::<RestApi<Vec<KLineData>>>("/api/v1/futures/market/kline", &params)
             .await?)
     }
 }
