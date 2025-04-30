@@ -164,6 +164,5 @@ pub struct KLineData {
     pub quote_vol: String,
     #[serde(rename = "baseVol")]
     pub base_vol: String,
-    #[serde(rename = "type")]
-    pub kline_type: String, // 因为 "type" 是 Rust 关键字，需要改字段名，使用 serde 重命名
+    pub time: i64,
 }
