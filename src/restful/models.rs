@@ -164,5 +164,5 @@ pub struct KLineData {
     pub quote_vol: String,
     #[serde(rename = "baseVol")]
     pub base_vol: String,
-    pub time: i64,
+    pub time: String,
 }
