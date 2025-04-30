@@ -156,10 +156,10 @@ pub struct PositionData {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KLineData {
-    pub open: f64,
-    pub high: f64,
-    pub close: f64,
-    pub low: f64,
+    pub open: String,
+    pub high: String,
+    pub close: String,
+    pub low: String,
     #[serde(rename = "quoteVol")]
     pub quote_vol: String,
     #[serde(rename = "baseVol")]
