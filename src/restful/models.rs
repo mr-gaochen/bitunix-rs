@@ -1,5 +1,5 @@
+use crate::utils::{de_float_from_str, de_i64_from_str};
 use serde::{Deserialize, Serialize};
-
 #[derive(Deserialize, Serialize, Debug)]
 pub struct RestApi<T> {
     pub code: i32,
@@ -156,13 +156,20 @@ pub struct PositionData {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KLineData {
-    pub open: String,
-    pub high: String,
-    pub close: String,
-    pub low: String,
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub open: f64,
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub high: f64,
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub close: f64,
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub low: f64,
     #[serde(rename = "quoteVol")]
-    pub quote_vol: String,
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub quote_vol: f64,
     #[serde(rename = "baseVol")]
-    pub base_vol: String,
-    pub time: String,
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub base_vol: f64,
+    #[serde(deserialize_with = "de_i64_from_str")]
+    pub time: i64,
 }
