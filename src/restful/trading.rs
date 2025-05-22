@@ -1,6 +1,6 @@
 use crate::client::BitUnixClient;
 
-use super::models::{RestApi, TradePlceOrder};
+use super::models::{CancleOrders, RestApi, TradePlceOrder};
 use anyhow::Result;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -41,6 +41,21 @@ impl BitUnixClient {
 
         Ok(self
             .post::<RestApi<TradePlceOrder>>("/api/v1/futures/trade/place_order", &params)
+            .await?)
+    }
+
+    /// 取消订单
+    /// POST /api/v1/futures/trade/cancel_orders
+    pub async fn cancle_orders(
+        &self,
+        symbol: &str,
+        order_list: Vec<TradePlceOrder>,
+    ) -> Result<RestApi<CancleOrders>> {
+        let mut params: BTreeMap<String, Value> = BTreeMap::new();
+        params.insert("symbol".into(), json!(symbol));
+        params.insert("orderList".into(), json!(order_list));
+        Ok(self
+            .post::<RestApi<CancleOrders>>("/api/v1/futures/trade/cancel_orders", &params)
             .await?)
     }
 }

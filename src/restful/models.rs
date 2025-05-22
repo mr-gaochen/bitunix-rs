@@ -36,6 +36,17 @@ pub struct TradePlceOrder {
     pub client_id: String,
 }
 
+/// 取消订单
+/// PSOT /api/v1/futures/trade/cancel_orders
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CancleOrders {
+    #[serde(rename = "failureList")]
+    pub failure_list: Vec<TradePlceOrder>,
+    #[serde(rename = "successList")]
+    pub success_list: Vec<TradePlceOrder>,
+}
+
 /// 获取历史持仓信息
 ///GET /api/v1/futures/position/get_history_positions
 #[derive(Debug, Clone, Serialize, Deserialize)]
