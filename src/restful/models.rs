@@ -184,3 +184,51 @@ pub struct KLineData {
     #[serde(deserialize_with = "de_i64_from_str")]
     pub time: i64,
 }
+
+///订单详情
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderData {
+    #[serde(rename = "orderId")]
+    pub order_id: String,
+    pub qty: String,
+    #[serde(rename = "tradeQty")]
+    pub trade_qty: String,
+    pub price: String,
+    pub symbol: String,
+    #[serde(rename = "positionMode")]
+    pub position_mode: String,
+    #[serde(rename = "marginMode")]
+    pub margin_mode: String,
+    pub leverage: i32,
+    pub status: String,
+    pub fee: String,
+    #[serde(rename = "realizedPNL")]
+    pub realized_pnl: String,
+    #[serde(rename = "type")]
+    pub order_type: String,
+    pub effect: String,
+    #[serde(rename = "reduceOnly")]
+    pub reduce_only: bool,
+    #[serde(rename = "clientId")]
+    pub client_id: String,
+    #[serde(rename = "tpPrice")]
+    pub tp_price: String,
+    #[serde(rename = "tpStopType")]
+    pub tp_stop_type: String,
+    #[serde(rename = "tpOrderType")]
+    pub tp_order_type: String,
+    #[serde(rename = "tpOrderPrice")]
+    pub tp_order_price: String,
+    #[serde(rename = "slPrice")]
+    pub sl_price: String,
+    #[serde(rename = "slStopType")]
+    pub sl_stop_type: String,
+    #[serde(rename = "slOrderType")]
+    pub sl_order_type: String,
+    #[serde(rename = "slOrderPrice")]
+    pub sl_order_price: String,
+    pub source: String,
+    pub ctime: i64,
+    pub mtime: i64,
+}
