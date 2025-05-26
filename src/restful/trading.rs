@@ -19,6 +19,14 @@ impl BitUnixClient {
         postion_id: Option<&str>,
         effect: Option<&str>,
         client_id: Option<&str>,
+        tp_price: Option<&str>,
+        tp_stop_type: Option<&str>,
+        tp_order_type: Option<&str>,
+        tp_order_price: Option<&str>,
+        sl_price: Option<&str>,
+        sl_stop_type: Option<&str>,
+        sl_order_type: Option<&str>,
+        sl_order_price: Option<&str>,
     ) -> Result<RestApi<TradePlceOrder>> {
         let mut params: BTreeMap<String, Value> = BTreeMap::new();
         params.insert("symbol".into(), json!(symbol));
@@ -37,6 +45,31 @@ impl BitUnixClient {
         }
         if let Some(client_id) = client_id {
             params.insert("clientId".into(), json!(client_id));
+        }
+        if let Some(tp_price) = tp_price {
+            params.insert("tpPrice".into(), json!(tp_price));
+        }
+        if let Some(tp_stop_type) = tp_stop_type {
+            params.insert("tpStopType".into(), json!(tp_stop_type));
+        }
+        if let Some(tp_order_type) = tp_order_type {
+            params.insert("tpOrderType".into(), json!(tp_order_type));
+        }
+        if let Some(tp_order_price) = tp_order_price {
+            params.insert("tpOrderPrice".into(), json!(tp_order_price));
+        }
+
+        if let Some(sl_price) = sl_price {
+            params.insert("slPrice".into(), json!(sl_price));
+        }
+        if let Some(sl_stop_type) = sl_stop_type {
+            params.insert("slStopType".into(), json!(sl_stop_type));
+        }
+        if let Some(sl_order_type) = sl_order_type {
+            params.insert("slOrderType".into(), json!(sl_order_type));
+        }
+        if let Some(sl_order_price) = sl_order_price {
+            params.insert("slOrderPrice".into(), json!(sl_order_price));
         }
 
         Ok(self
