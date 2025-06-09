@@ -36,10 +36,11 @@ where
 {
     let subscribe_msg = json!({
         "op": "subscribe",
-        "args": {
+        "args": [{
             "symbol":symbol,
             "ch": interval,
         }
+        ]
     })
     .to_string();
 
