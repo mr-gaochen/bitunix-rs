@@ -43,6 +43,8 @@ where
     })
     .to_string();
 
+    println!("订阅消息:{:?}", subscribe_msg);
+
     write
         .send(Message::Text(subscribe_msg))
         .await
