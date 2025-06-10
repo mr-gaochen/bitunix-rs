@@ -149,13 +149,17 @@ pub struct PositionData {
     pub position_mode: String,
     pub margin_mode: String,
     pub leverage: i64,
-    pub fee: String,
-    pub funding: String,
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub fee: f64,
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub funding: f64,
     #[serde(rename = "realizedPNL")]
-    pub realized_pnl: String,
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub realized_pnl: f64,
     pub margin: String,
     #[serde(rename = "unrealizedPNL")]
-    pub unrealized_pnl: String,
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub unrealized_pnl: f64,
     pub liq_price: String,
     pub margin_rate: String,
     pub avg_open_price: String,

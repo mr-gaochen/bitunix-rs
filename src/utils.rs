@@ -1,5 +1,6 @@
 use serde::de;
 use serde::{Deserialize, Deserializer};
+use std::str::FromStr;
 
 pub fn de_float_from_str<'a, D>(deserializer: D) -> Result<f64, D::Error>
 where
