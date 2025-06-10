@@ -101,4 +101,13 @@ impl BitUnixClient {
             .get::<RestApi<OrderData>>("/api/v1/futures/trade/get_order_detail", &params)
             .await?)
     }
+
+    /// 平仓所有仓位
+    pub async fn close_all_position(&self, symbol: &str) -> Result<RestApi<Value>> {
+        let mut params: BTreeMap<String, Value> = BTreeMap::new();
+        params.insert("symbol".into(), symbol.into());
+        Ok(self
+            .post::<RestApi<Value>>("/api/v1/futures/trade/close_all_position", &params)
+            .await?)
+    }
 }
