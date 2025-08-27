@@ -13,10 +13,7 @@ use tokio::{
 };
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
-use super::{
-    model::position_event::PositionEvent,
-    types::{MessageCallback, MessageHandler},
-};
+use super::types::{MessageCallback, MessageHandler};
 
 const HEARTBEAT_INTERVAL: u64 = 20;
 const RETRY_DELAY: u64 = 5;
@@ -24,9 +21,6 @@ const MAX_RETRY_ATTEMPTS: u32 = 10;
 const MAX_RETRY_DELAY: u64 = 60;
 
 type WsStream = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
-
-/// 仓位推送回调
-pub type PositionCallback = Arc<dyn Fn(PositionEvent) + Send + Sync>;
 
 /// 生成随机 nonce
 fn generate_nonce() -> String {
@@ -37,7 +31,7 @@ fn generate_nonce() -> String {
         .collect()
 }
 
-/// 生成签名
+/// 生成签名 HMAC-SHA256
 fn generate_signature(api_key: &str, secret_key: &str, timestamp: i64, nonce: &str) -> String {
     let msg = format!("{}{}{}", api_key, timestamp, nonce);
     let mut mac = Hmac::<Sha256>::new_from_slice(secret_key.as_bytes())
@@ -46,7 +40,7 @@ fn generate_signature(api_key: &str, secret_key: &str, timestamp: i64, nonce: &s
     hex::encode(mac.finalize().into_bytes())
 }
 
-/// WebSocket 登录
+/// 登录
 async fn login<S>(write: &mut S, api_key: &str, secret_key: &str) -> Result<()>
 where
     S: SinkExt<Message> + Unpin,
@@ -116,7 +110,7 @@ where
         .map_err(|e| anyhow!("【bitunix】订阅消息发送失败: {:?}", e))
 }
 
-/// 对外公开：带处理器 + position 回调
+/// 对外公开：使用 handler
 pub async fn run_with_handler(
     wss_domain: &str,
     interval: &str,
@@ -124,7 +118,6 @@ pub async fn run_with_handler(
     api_key: &str,
     secret_key: &str,
     handler: Arc<dyn MessageHandler>,
-    position_callback: Option<PositionCallback>,
 ) -> Result<()> {
     run_internal(
         wss_domain,
@@ -134,12 +127,11 @@ pub async fn run_with_handler(
         secret_key,
         Some(handler),
         None,
-        position_callback,
     )
     .await
 }
 
-/// 对外公开：带回调 + position 回调
+/// 对外公开：使用 callback
 pub async fn run_with_callback(
     wss_domain: &str,
     interval: &str,
@@ -147,7 +139,6 @@ pub async fn run_with_callback(
     api_key: &str,
     secret_key: &str,
     callback: MessageCallback,
-    position_callback: Option<PositionCallback>,
 ) -> Result<()> {
     run_internal(
         wss_domain,
@@ -157,7 +148,6 @@ pub async fn run_with_callback(
         secret_key,
         None,
         Some(callback),
-        position_callback,
     )
     .await
 }
@@ -171,7 +161,6 @@ async fn run_internal(
     secret_key: &str,
     handler: Option<Arc<dyn MessageHandler>>,
     callback: Option<MessageCallback>,
-    position_callback: Option<PositionCallback>,
 ) -> Result<()> {
     println!("初始化 BitUnix WebSocket...");
     let mut retry_count = 0;
@@ -227,10 +216,10 @@ async fn run_internal(
                         _ = sleep(Duration::from_secs(60)) => {
                             let mut writer = write_clone_subscribe.lock().await;
                             if let Err(e) = subscribe_channel(&mut *writer, interval, Some(symbol)).await {
-                                println!("BitUnix 定时订阅行情失败: {:?}", e);
+                                println!("BitUnix 定时订阅失败: {:?}", e);
                             }
                             if let Err(e) = subscribe_channel(&mut *writer, "position", None).await {
-                                println!("BitUnix 定时订阅仓位失败: {:?}", e);
+                                println!("BitUnix 定时订阅 position 失败: {:?}", e);
                             }
                         }
 
@@ -247,22 +236,7 @@ async fn run_internal(
                         Some(msg) = read_half.next() => {
                             match msg {
                                 Ok(Message::Text(text)) => {
-                                    // 判断是否是仓位推送
-                                    if text.contains("\"ch\":\"position\"") {
-                                        if let Some(cb) = &position_callback {
-                                            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text) {
-                                                if let Some(data_array) = parsed["data"].as_array() {
-                                                    for d in data_array {
-                                                        if let Ok(event) = serde_json::from_value::<PositionEvent>(d.clone()) {
-                                                            cb(event);
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    // 行情处理
+                                    // 统一回调，handler 或 callback
                                     if let Some(ref h) = handler {
                                         h.handle(&text).await;
                                     }

@@ -49,7 +49,7 @@ where
     write
         .send(Message::Text(subscribe_msg))
         .await
-        .map_err(|e| anyhow!("【gate】订阅消息发送失败: {:?}", e))
+        .map_err(|e| anyhow!("【BitUnix】订阅消息发送失败: {:?}", e))
 }
 
 pub async fn run_with_handler(
