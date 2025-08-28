@@ -1,10 +1,9 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use futures::{SinkExt, StreamExt};
-use hmac::{Hmac, Mac};
 use rand::{distributions::Alphanumeric, Rng};
 use serde_json::json;
-use sha2::Sha256;
+use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use tokio::{
     select,
@@ -32,12 +31,21 @@ fn generate_nonce() -> String {
 }
 
 /// 生成签名 HMAC-SHA256
+/// 生成签名（两次 SHA256）
 fn generate_signature(api_key: &str, secret_key: &str, timestamp: i64, nonce: &str) -> String {
-    let msg = format!("{}{}{}", api_key, timestamp, nonce);
-    let mut mac = Hmac::<Sha256>::new_from_slice(secret_key.as_bytes())
-        .expect("HMAC can take key of any size");
-    mac.update(msg.as_bytes());
-    hex::encode(mac.finalize().into_bytes())
+    // 第一次 SHA256: nonce + timestamp + api_key
+    let first_input = format!("{}{}{}", nonce, timestamp, api_key);
+    let mut hasher = Sha256::new();
+    hasher.update(first_input.as_bytes());
+    let first_hash = format!("{:x}", hasher.finalize());
+
+    // 第二次 SHA256: 第一次结果 + secret_key
+    let second_input = format!("{}{}", first_hash, secret_key);
+    let mut hasher2 = Sha256::new();
+    hasher2.update(second_input.as_bytes());
+    let final_hash = format!("{:x}", hasher2.finalize());
+
+    final_hash
 }
 
 /// 登录
