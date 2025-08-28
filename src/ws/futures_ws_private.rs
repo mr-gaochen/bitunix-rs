@@ -73,7 +73,7 @@ where
 async fn connect_websocket(
     wss_domain: &str,
 ) -> Result<(WsStream, mpsc::Sender<Message>, mpsc::Receiver<Message>)> {
-    let ws_url = format!("wss://{}/public/", wss_domain);
+    let ws_url = format!("wss://{}/private/", wss_domain);
     let (ws_stream, _) = connect_async(&ws_url).await?;
     let (tx, rx) = mpsc::channel(100);
     Ok((ws_stream, tx, rx))
