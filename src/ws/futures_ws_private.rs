@@ -165,8 +165,6 @@ async fn run_internal(
                 retry_delay = RETRY_DELAY;
 
                 let write_clone_heartbeat = Arc::clone(&write);
-                //  let write_clone_subscribe = Arc::clone(&write);
-
                 loop {
                     select! {
                         // 心跳
@@ -178,25 +176,6 @@ async fn run_internal(
                                 break;
                             }
                         }
-
-                        // // 定时刷新订阅
-                        // _ = sleep(Duration::from_secs(60)) => {
-                        //     let mut writer = write_clone_subscribe.lock().await;
-
-                        //     if let Err(e) = subscribe_channel(&mut *writer, "position").await {
-                        //         println!("BitUnix 定时订阅 position 失败: {:?}", e);
-                        //     }
-                        // }
-
-                        // 后台发消息
-                        Some(msg) = rx.recv() => {
-                            let mut writer = write.lock().await;
-                            if let Err(e) = writer.send(msg).await {
-                                println!("BitUnix 发送消息失败: {:?}", e);
-                                break;
-                            }
-                        }
-
                         // 接收服务端消息
                         Some(msg) = read_half.next() => {
                             match msg {
