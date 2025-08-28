@@ -80,25 +80,15 @@ async fn connect_websocket(
 }
 
 /// 订阅频道
-async fn subscribe_channel<S>(write: &mut S, channel: &str, symbol: Option<&str>) -> Result<()>
+async fn subscribe_channel<S>(write: &mut S, channel: &str) -> Result<()>
 where
     S: SinkExt<Message> + Unpin,
     S::Error: std::fmt::Debug,
 {
-    let args = if let Some(sym) = symbol {
-        json!([{
-            "symbol": sym,
-            "ch": channel,
-        }])
-    } else {
-        json!([{
-            "ch": channel,
-        }])
-    };
-
+    let now_ts = Utc::now().timestamp_millis();
     let subscribe_msg = json!({
-        "op": "subscribe",
-        "args": args
+        "ch": channel,
+        "ts": now_ts,
     })
     .to_string();
 
@@ -113,50 +103,26 @@ where
 /// 对外公开：使用 handler
 pub async fn run_with_handler(
     wss_domain: &str,
-    interval: &str,
-    symbol: &str,
     api_key: &str,
     secret_key: &str,
     handler: Arc<dyn MessageHandler>,
 ) -> Result<()> {
-    run_internal(
-        wss_domain,
-        interval,
-        symbol,
-        api_key,
-        secret_key,
-        Some(handler),
-        None,
-    )
-    .await
+    run_internal(wss_domain, api_key, secret_key, Some(handler), None).await
 }
 
 /// 对外公开：使用 callback
 pub async fn run_with_callback(
     wss_domain: &str,
-    interval: &str,
-    symbol: &str,
     api_key: &str,
     secret_key: &str,
     callback: MessageCallback,
 ) -> Result<()> {
-    run_internal(
-        wss_domain,
-        interval,
-        symbol,
-        api_key,
-        secret_key,
-        None,
-        Some(callback),
-    )
-    .await
+    run_internal(wss_domain, api_key, secret_key, None, Some(callback)).await
 }
 
 /// 主逻辑
 async fn run_internal(
     wss_domain: &str,
-    interval: &str,
-    symbol: &str,
     api_key: &str,
     secret_key: &str,
     handler: Option<Arc<dyn MessageHandler>>,
@@ -180,15 +146,8 @@ async fn run_internal(
                         println!("BitUnix 登录失败: {:?}", e);
                         continue;
                     }
-
-                    // 订阅行情
-                    if let Err(e) = subscribe_channel(&mut *writer, interval, Some(symbol)).await {
-                        println!("BitUnix 订阅行情失败: {:?}", e);
-                        continue;
-                    }
-
                     // 订阅仓位
-                    if let Err(e) = subscribe_channel(&mut *writer, "position", None).await {
+                    if let Err(e) = subscribe_channel(&mut *writer, "position").await {
                         println!("BitUnix 订阅仓位失败: {:?}", e);
                         continue;
                     }
@@ -215,10 +174,8 @@ async fn run_internal(
                         // 定时刷新订阅
                         _ = sleep(Duration::from_secs(60)) => {
                             let mut writer = write_clone_subscribe.lock().await;
-                            if let Err(e) = subscribe_channel(&mut *writer, interval, Some(symbol)).await {
-                                println!("BitUnix 定时订阅失败: {:?}", e);
-                            }
-                            if let Err(e) = subscribe_channel(&mut *writer, "position", None).await {
+
+                            if let Err(e) = subscribe_channel(&mut *writer, "position").await {
                                 println!("BitUnix 定时订阅 position 失败: {:?}", e);
                             }
                         }
