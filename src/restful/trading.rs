@@ -110,4 +110,34 @@ impl BitUnixClient {
             .post::<RestApi<Value>>("/api/v1/futures/trade/close_all_position", &params)
             .await?)
     }
+
+    /// 更新仓位止盈止损
+    pub async fn modify_order(
+        &self,
+        symbol: &str,
+        position_id: &str,
+        tp_price: Option<&str>,
+        tp_stop_type: Option<&str>,
+        sl_price: Option<&str>,
+        sl_stop_type: Option<&str>,
+    ) -> Result<RestApi<Value>> {
+        let mut params: BTreeMap<String, Value> = BTreeMap::new();
+        params.insert("symbol".into(), symbol.into());
+        params.insert("positionId".into(), json!(position_id));
+        if let Some(tp_price) = tp_price {
+            params.insert("tpPrice".into(), json!(tp_price));
+        }
+        if let Some(tp_stop_type) = tp_stop_type {
+            params.insert("tpStopType".into(), json!(tp_stop_type));
+        }
+        if let Some(sl_price) = sl_price {
+            params.insert("slPrice".into(), json!(sl_price));
+        }
+        if let Some(sl_stop_type) = sl_stop_type {
+            params.insert("slStopType".into(), json!(sl_stop_type));
+        }
+        Ok(self
+            .post::<RestApi<Value>>("/api/v1/futures/tpsl/position/modify_order", &params)
+            .await?)
+    }
 }
