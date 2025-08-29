@@ -1,3 +1,4 @@
+use crate::utils::de_float_from_str;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -9,11 +10,18 @@ pub struct KlineMessage {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct KlineData {
-    pub o: String, // 开盘价
-    pub c: String, // 收盘价
-    pub h: String, // 最高价
-    pub l: String, // 最低价
-    pub b: String, // 成交量 (base)
-    pub q: String, // 成交额 (quote)
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub o: f64, // 开盘价
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub c: f64, // 收盘价
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub h: f64, // 最高价
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub l: f64, // 最低价
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub b: f64, // 成交量 (base)
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub q: f64, // 成交额 (quote)
 }

@@ -202,3 +202,11 @@ pub struct OrderData {
     pub symbol: String,
     pub status: String,
 }
+
+/// 修改止盈止损
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModifyOrder {
+    #[serde(rename = "order_id")]
+    pub order_id: String,
+}

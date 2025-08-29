@@ -2,15 +2,18 @@ use serde::{Deserialize, Serialize};
 
 /// 止盈止损订单信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TpSlOrder {
     /// 事件类型: CREATE / UPDATE / CLOSE
     pub event: String,
 
     /// 仓位 ID
-    pub positionId: String,
+    #[serde(rename = "positionId")]
+    pub position_id: String,
 
     /// 订单 ID
-    pub orderId: String,
+    #[serde(rename = "orderId")]
+    pub order_id: String,
 
     /// 交易对
     pub symbol: String,
@@ -22,7 +25,8 @@ pub struct TpSlOrder {
     pub side: String,
 
     /// 持仓模式: ONE_WAY / HEDGE
-    pub positionMode: String,
+    #[serde(rename = "positionMode")]
+    pub position_mode: String,
 
     /// 订单状态:
     /// INIT: 准备中
@@ -40,32 +44,42 @@ pub struct TpSlOrder {
     pub order_type: String,
 
     /// 止盈委托数量（基础币种）
-    pub tpQty: Option<String>,
+    #[serde(rename = "tpQty")]
+    pub tp_qty: Option<String>,
 
     /// 止损委托数量（基础币种）
-    pub slQty: Option<bool>,
+    #[serde(rename = "slQty")]
+    pub sl_qty: Option<bool>,
 
     /// 止盈触发类型: MARK_PRICE / LAST_PRICE
-    pub tpStopType: Option<String>,
+    #[serde(rename = "tpStopType")]
+    pub tp_stop_type: Option<String>,
 
     /// 止盈触发价格
-    pub tpPrice: Option<String>,
+    #[serde(rename = "tpPrice")]
+    pub tp_price: Option<String>,
 
     /// 止盈委托类型: LIMIT / MARKET
-    pub tpOrderType: Option<String>,
+    #[serde(rename = "tpOrderType")]
+    pub tp_order_type: Option<String>,
 
     /// 止盈委托下单价格
-    pub tpOrderPrice: Option<String>,
+    #[serde(rename = "tpOrderPrice")]
+    pub tp_order_price: Option<String>,
 
     /// 止损触发类型: MARK_PRICE / LAST_PRICE
-    pub slStopType: Option<String>,
+    #[serde(rename = "slStopType")]
+    pub sl_stop_type: Option<String>,
 
     /// 止损触发价格
-    pub slPrice: Option<String>,
+    #[serde(rename = "slPrice")]
+    pub sl_price: Option<String>,
 
     /// 止损委托类型: LIMIT / MARKET
-    pub slOrderType: Option<String>,
+    #[serde(rename = "slOrderType")]
+    pub sl_order_type: Option<String>,
 
     /// 止损委托下单价格
-    pub slOrderPrice: Option<String>,
+    #[serde(rename = "slOrderPrice")]
+    pub sl_order_price: Option<String>,
 }
