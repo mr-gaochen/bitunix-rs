@@ -77,6 +77,26 @@ impl BitUnixClient {
             .await?)
     }
 
+    pub async fn trade_place_order_basic(
+        &self,
+        symbol: &str,
+        qty: &str,
+        side: &str,
+        trade_side: &str,
+        order_type: &str,
+    ) -> Result<RestApi<TradePlceOrder>> {
+        let mut params: BTreeMap<String, Value> = BTreeMap::new();
+        params.insert("symbol".into(), json!(symbol));
+        params.insert("qty".into(), json!(qty));
+        params.insert("side".into(), json!(side));
+        params.insert("orderType".into(), json!(order_type));
+        params.insert("tradeSide".into(), json!(trade_side));
+
+        Ok(self
+            .post::<RestApi<TradePlceOrder>>("/api/v1/futures/trade/place_order", &params)
+            .await?)
+    }
+
     /// 取消订单
     /// POST /api/v1/futures/trade/cancel_orders
     pub async fn cancle_orders(
