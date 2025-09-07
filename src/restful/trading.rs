@@ -157,7 +157,7 @@ impl BitUnixClient {
             params.insert("slStopType".into(), json!(sl_stop_type));
         }
         Ok(self
-            .post::<RestApi<Value>>("/api/v1/futures/tpsl/position/modify_order", &params)
+            .post::<RestApi<Value>>("/api/v1/futures/tpsl/position/place_order", &params)
             .await?)
     }
 }
