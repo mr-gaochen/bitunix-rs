@@ -210,3 +210,28 @@ pub struct ModifyOrder {
     #[serde(rename = "order_id")]
     pub order_id: String,
 }
+
+/// 深度
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DepthBook {
+    pub ch: String,      // 频道名，例如 "depth_book5"
+    pub symbol: String,  // 交易对，例如 "ETHUSDT"
+    pub ts: u64,         // 时间戳（毫秒）
+    pub data: DepthData, // 盘口数据
+}
+
+/// 买卖盘数据
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DepthData {
+    pub a: Vec<DepthLevel>, // 卖盘 (ask)
+    pub b: Vec<DepthLevel>, // 买盘 (bid)
+}
+
+/// 单档盘口：价格 + 数量
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DepthLevel {
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub price: f64,
+    #[serde(deserialize_with = "de_float_from_str")]
+    pub volume: f64,
+}
