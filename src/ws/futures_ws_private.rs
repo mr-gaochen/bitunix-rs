@@ -2,7 +2,8 @@ use anyhow::{anyhow, Result};
 use chrono::Utc;
 use futures::{SinkExt, StreamExt};
 use rand::{distributions::Alphanumeric, Rng};
-use serde_json::json;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use tokio::{
@@ -21,10 +22,16 @@ use super::types::{MessageCallback, MessageHandler};
 
 const HEARTBEAT_INTERVAL: u64 = 20;
 const RETRY_DELAY: u64 = 5;
-const MAX_RETRY_ATTEMPTS: u32 = 15;
 const MAX_RETRY_DELAY: u64 = 60;
 
-// --- 基础工具函数 ---
+// 定义订阅参数结构，兼容有无 symbol 的情况
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Subscription {
+    pub ch: String,
+    pub symbol: Option<String>,
+}
+
+// --- 工具函数 ---
 
 fn generate_nonce() -> String {
     rand::thread_rng()
@@ -46,17 +53,11 @@ fn generate_signature(api_key: &str, secret_key: &str, timestamp: i64, nonce: &s
     format!("{:x}", hasher2.finalize())
 }
 
-// --- 核心逻辑优化 ---
+// --- 协议逻辑 ---
 
-/// 登录并订阅所有指定的频道
-async fn login_and_subscribe(
-    tx: &mpsc::Sender<Message>,
-    api_key: &str,
-    secret_key: &str,
-    channels: &[String],
-) -> Result<()> {
-    // 1. 登录
-    let timestamp = Utc::now().timestamp_millis();
+/// 登录逻辑 (文档：op: login)
+async fn login(tx: &mpsc::Sender<Message>, api_key: &str, secret_key: &str) -> Result<()> {
+    let timestamp = Utc::now().timestamp_millis(); // 文档示例中使用的是毫秒级别长整数
     let nonce = generate_nonce();
     let sign = generate_signature(api_key, secret_key, timestamp, &nonce);
 
@@ -70,60 +71,61 @@ async fn login_and_subscribe(
         }]
     }).to_string();
 
-    tx.send(Message::Text(login_msg)).await
-        .map_err(|e| anyhow!("发送登录请求失败: {:?}", e))?;
-
-    // 2. 批量订阅频道
-    for channel in channels {
-        let sub_msg = json!({
-            "ch": channel,
-            "ts": Utc::now().timestamp_millis(),
-        }).to_string();
-
-        println!("正在订阅频道: {}", channel);
-        tx.send(Message::Text(sub_msg)).await
-            .map_err(|e| anyhow!("订阅频道 {} 失败: {:?}", channel, e))?;
-    }
-
+    tx.send(Message::Text(login_msg)).await?;
     Ok(())
 }
 
-/// 兼容旧接口，使用 handler
+/// 批量订阅逻辑 (文档：op: subscribe)
+async fn subscribe(tx: &mpsc::Sender<Message>, subs: &[Subscription]) -> Result<()> {
+    if subs.is_empty() { return Ok(()); }
+
+    let subscribe_msg = json!({
+        "op": "subscribe",
+        "args": subs
+    }).to_string();
+
+    println!("发送订阅请求: {}", subscribe_msg);
+    tx.send(Message::Text(subscribe_msg)).await?;
+    Ok(())
+}
+
+// --- 对外公开接口 ---
+
 pub async fn run_with_handler(
     wss_domain: &str,
     api_key: &str,
     secret_key: &str,
-    channels: Vec<String>, // 新增：允许传入多个频道
+    subs: Vec<Subscription>,
     handler: Arc<dyn MessageHandler>,
 ) -> Result<()> {
-    run_internal(wss_domain, api_key, secret_key, channels, Some(handler), None).await
+    run_internal(wss_domain, api_key, secret_key, subs, Some(handler), None).await
 }
 
-/// 兼容旧接口，使用 callback
 pub async fn run_with_callback(
     wss_domain: &str,
     api_key: &str,
     secret_key: &str,
-    channels: Vec<String>, // 新增：允许传入多个频道
+    subs: Vec<Subscription>,
     callback: MessageCallback,
 ) -> Result<()> {
-    run_internal(wss_domain, api_key, secret_key, channels, None, Some(callback)).await
+    run_internal(wss_domain, api_key, secret_key, subs, None, Some(callback)).await
 }
+
+// --- 核心运行逻辑 ---
 
 async fn run_internal(
     wss_domain: &str,
     api_key: &str,
     secret_key: &str,
-    channels: Vec<String>,
+    subs: Vec<Subscription>,
     handler: Option<Arc<dyn MessageHandler>>,
     callback: Option<MessageCallback>,
 ) -> Result<()> {
     let ws_url = format!("wss://{}/private/", wss_domain);
-    let mut retry_count = 0;
     let mut retry_delay = RETRY_DELAY;
 
     loop {
-        println!("连接 BitUnix WebSocket: {}", ws_url);
+        println!("尝试连接 BitUnix WebSocket: {}", ws_url);
 
         let connect_res = connect_async(&ws_url).await;
         let (ws_stream, _) = match connect_res {
@@ -131,85 +133,108 @@ async fn run_internal(
             Err(e) => {
                 println!("连接失败: {:?}, {}秒后重试", e, retry_delay);
                 sleep(Duration::from_secs(retry_delay)).await;
-                retry_count += 1;
                 retry_delay = (retry_delay * 2).min(MAX_RETRY_DELAY);
-                if retry_count >= MAX_RETRY_ATTEMPTS { break; }
                 continue;
             }
         };
 
-        retry_count = 0;
-        retry_delay = RETRY_DELAY;
-
+        retry_delay = RETRY_DELAY; // 连接成功，重置重试延迟
         let (mut ws_write, mut ws_read) = ws_stream.split();
-        let (tx, mut rx) = mpsc::channel::<Message>(200); // 增加缓存容量
+        let (tx, mut rx) = mpsc::channel::<Message>(300); // 增加容量以应对高频行情
 
-        // 登录并订阅传入的所有频道
-        if let Err(e) = login_and_subscribe(&tx, api_key, secret_key, &channels).await {
-            println!("初始化失败: {:?}", e);
-            sleep(Duration::from_secs(RETRY_DELAY)).await;
+        // 1. 登录
+        if let Err(e) = login(&tx, api_key, secret_key).await {
+            println!("登录指令发送失败: {:?}", e);
             continue;
         }
 
-        // 后台写入任务
+        // 2. 订阅
+        if let Err(e) = subscribe(&tx, &subs).await {
+            println!("订阅指令发送失败: {:?}", e);
+            continue;
+        }
+
+        // 3. 独立写入任务
         let mut write_task = tokio::spawn(async move {
             while let Some(msg) = rx.recv().await {
                 if let Err(e) = ws_write.send(msg).await {
-                    println!("WS 写入失败: {:?}", e);
+                    println!("WebSocket 写入错误: {:?}", e);
                     break;
                 }
             }
         });
 
+        // 4. 心跳定时器 (文档：op: ping, ping: seconds)
         let mut hb_interval = interval(Duration::from_secs(HEARTBEAT_INTERVAL));
         hb_interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
-        println!("BitUnix 运行中，已订阅: {:?}", channels);
+        println!("BitUnix WebSocket 已启动并成功订阅频道");
 
+        // 5. 主事件循环
         loop {
             select! {
-                // 主动心跳
+                // 定时主动发送 Ping
                 _ = hb_interval.tick() => {
-                    let ping_msg = json!({ "op": "ping", "ping": Utc::now().timestamp() }).to_string();
-                    if tx.send(Message::Text(ping_msg)).await.is_err() { break; }
+                    let ping_body = json!({
+                        "op": "ping",
+                        "ping": Utc::now().timestamp()
+                    }).to_string();
+                    if tx.send(Message::Text(ping_body)).await.is_err() { break; }
                 }
 
-                // 消息处理
+                // 处理接收的消息
                 msg_res = ws_read.next() => {
                     match msg_res {
                         Some(Ok(msg)) => {
                             match msg {
                                 Message::Text(text) => {
-                                    // 这里可以增加简单的解析逻辑，如果是心跳回包则忽略，否则回调
-                                    if !text.contains("\"pong\"") {
-                                        if let Some(ref h) = handler { h.handle(&text).await; }
-                                        if let Some(ref cb) = callback { cb(&text).await; }
+                                    // 预处理消息判断是否是服务器发来的 ping
+                                    if let Ok(val) = serde_json::from_str::<Value>(&text) {
+                                        if val["op"] == "ping" {
+                                            // 如果收到服务器的 ping (文档显示服务器会返回包含 pong 的结构)
+                                            // 且文档显示响应包含 pong/ping，这里作为心跳响应，保持链路。
+                                            // 如果服务端是主动发 ping，客户端应回应。
+                                            continue;
+                                        }
                                     }
+
+                                    // 业务回调
+                                    if let Some(ref h) = handler { h.handle(&text).await; }
+                                    if let Some(ref cb) = callback { cb(&text).await; }
                                 }
                                 Message::Ping(p) => {
+                                    // 响应标准 WS 协议层 Ping
                                     let _ = tx.send(Message::Pong(p)).await;
                                 }
-                                Message::Close(_) => break,
+                                Message::Close(_) => {
+                                    println!("收到服务器 Close 帧");
+                                    break;
+                                }
                                 _ => {}
                             }
                         }
                         Some(Err(e)) => {
-                            println!("读取异常: {:?}", e);
+                            println!("读取消息异常: {:?}", e);
                             break;
                         }
-                        None => break,
+                        None => {
+                            println!("连接被远端关闭");
+                            break;
+                        }
                     }
                 }
 
-                // 监控写入任务
-                _ = &mut write_task => break,
+                // 监控写入任务状态
+                _ = &mut write_task => {
+                    println!("写入线程已退出");
+                    break;
+                }
             }
         }
 
+        // 释放资源并尝试重连
         write_task.abort();
-        println!("连接已断开，正在尝试重连...");
+        println!("正在重连...");
         sleep(Duration::from_secs(RETRY_DELAY)).await;
     }
-
-    Ok(())
 }
