@@ -6,31 +6,31 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::{
     select,
-    sync::{mpsc, Mutex},
+    sync::{mpsc, oneshot},
     time::{interval, sleep, Duration, MissedTickBehavior},
 };
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 use tracing::{debug, error, info, instrument, warn};
 
 // 假设这是你定义的 Handler trait
-use super::types::MessageHandler;
+pub trait MessageHandler: Send + Sync {
+    fn handle(&self, msg: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>;
+}
 
 // --- 常量定义 ---
-const HEARTBEAT_INTERVAL: u64 = 20;
+const HEARTBEAT_INTERVAL: u64 = 15;
 const INITIAL_RETRY_DELAY: u64 = 5;
 const MAX_RETRY_DELAY: u64 = 60;
-const CHANNEL_BUFFER: usize = 1000; // 内部命令通道大小
+const CHANNEL_BUFFER: usize = 1000;
 
 type WsStream = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
 
-/// 订阅请求的数据结构，用于去重和重连
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct Subscription {
     symbol: String,
     interval: String,
 }
 
-/// 发送给后台任务的控制命令
 #[derive(Debug)]
 enum Cmd {
     Subscribe(Subscription),
@@ -38,21 +38,29 @@ enum Cmd {
     Shutdown,
 }
 
-/// BitUnix WebSocket 客户端管理器
+// ==========================================
+// 缺少的部分在这里：
+// ==========================================
+#[derive(Debug)]
+enum WsMessage {
+    Text(String),
+    Pong(Vec<u8>),
+    Close,
+}
+// ==========================================
+
 pub struct BitUnixWsClient {
     cmd_tx: mpsc::Sender<Cmd>,
-    handler: Arc<dyn MessageHandler>,
+    _handler: Arc<dyn MessageHandler>,
     wss_domain: String,
 }
 
 impl BitUnixWsClient {
-    /// 创建并启动客户端
     pub fn new(wss_domain: &str, handler: Arc<dyn MessageHandler>) -> Self {
         let (cmd_tx, cmd_rx) = mpsc::channel(CHANNEL_BUFFER);
         let domain = wss_domain.to_string();
         let handler_clone = handler.clone();
 
-        // 启动后台守护任务
         tokio::spawn(async move {
             let runner = WsRunner {
                 wss_domain: domain,
@@ -65,12 +73,11 @@ impl BitUnixWsClient {
 
         Self {
             cmd_tx,
-            handler,
+            _handler: handler,
             wss_domain: wss_domain.to_string(),
         }
     }
 
-    /// 动态添加订阅
     pub async fn subscribe(&self, symbol: &str, interval: &str) -> Result<()> {
         let sub = Subscription {
             symbol: symbol.to_string(),
@@ -80,7 +87,6 @@ impl BitUnixWsClient {
             .map_err(|_| anyhow!("后台任务已停止"))
     }
 
-    /// 动态取消订阅
     pub async fn unsubscribe(&self, symbol: &str, interval: &str) -> Result<()> {
         let sub = Subscription {
             symbol: symbol.to_string(),
@@ -90,19 +96,15 @@ impl BitUnixWsClient {
             .map_err(|_| anyhow!("后台任务已停止"))
     }
 
-    /// 关闭连接
     pub async fn shutdown(&self) -> Result<()> {
         self.cmd_tx.send(Cmd::Shutdown).await
             .map_err(|_| anyhow!("后台任务已停止"))
     }
 }
 
-// --- 后台运行逻辑 ---
-
 struct WsRunner {
     wss_domain: String,
     handler: Arc<dyn MessageHandler>,
-    // 核心：在内存中记录当前应该订阅的所有频道
     subscriptions: HashSet<Subscription>,
     cmd_rx: mpsc::Receiver<Cmd>,
 }
@@ -114,10 +116,9 @@ impl WsRunner {
         let mut retry_delay = INITIAL_RETRY_DELAY;
 
         loop {
-            // 1. 尝试连接
             let ws_stream = match connect_websocket(&self.wss_domain).await {
                 Ok(s) => {
-                    retry_delay = INITIAL_RETRY_DELAY; // 连接成功，重置退避
+                    retry_delay = INITIAL_RETRY_DELAY;
                     s
                 }
                 Err(e) => {
@@ -128,134 +129,168 @@ impl WsRunner {
                 }
             };
 
-            // 2. 运行会话（直到断开）
-            let disconnect_reason = self.handle_session(ws_stream).await;
-
-            // 3. 检查是否是主动关闭
-            if let Some(Cmd::Shutdown) = disconnect_reason {
+            if let Some(Cmd::Shutdown) = self.handle_session(ws_stream).await {
                 info!("收到关闭指令，退出 WebSocket 任务");
                 break;
             }
 
             warn!("连接断开，准备重连...");
-            // 这里不需要 sleep，因为 handle_session 内部断开通常意味着网络问题或EOF，
-            // 立即重连或在外层循环有 connect 的重试逻辑。
-            // 为了防止死循环轰炸，可以在这里加个小延迟
             sleep(Duration::from_secs(1)).await;
         }
     }
 
-    /// 处理单个 WebSocket 会话
-    /// 返回值：如果是因收到内部命令退出，返回该命令；否则返回 None (表示网络断开)
     async fn handle_session(&mut self, ws_stream: WsStream) -> Option<Cmd> {
-        let (mut write, mut read) = ws_stream.split();
+        let (mut write_stream, mut read_stream) = ws_stream.split();
+        let (msg_tx, mut msg_rx) = mpsc::channel::<WsMessage>(CHANNEL_BUFFER);
 
-        // 关键点：重连成功后，立即重新发送内存中已有的所有订阅
-        if !self.subscriptions.is_empty() {
-            info!("检测到 {} 个活跃订阅，正在恢复...", self.subscriptions.len());
-            for sub in self.subscriptions.iter() {
-                if let Err(e) = send_subscribe_msg(&mut write, sub, "subscribe").await {
-                    error!(error = ?e, symbol = %sub.symbol, "恢复订阅失败");
+        // 注意这里的 mut
+        let (write_abort_tx, mut write_abort_rx) = oneshot::channel();
+
+        // --- 写入任务 ---
+        let write_handle = tokio::spawn(async move {
+            while let Some(msg) = msg_rx.recv().await {
+                let res = match msg {
+                    WsMessage::Text(text) => write_stream.send(Message::Text(text)).await,
+                    WsMessage::Pong(data) => write_stream.send(Message::Pong(data)).await,
+                    WsMessage::Close => {
+                        let _ = write_stream.close().await;
+                        break;
+                    }
+                };
+
+                if let Err(e) = res {
+                    error!(error = ?e, "WebSocket 写入失败");
+                    break;
                 }
+            }
+            let _ = write_abort_tx.send(());
+        });
+
+        // --- 恢复订阅 ---
+        if !self.subscriptions.is_empty() {
+            info!("正在恢复 {} 个活跃订阅...", self.subscriptions.len());
+            for sub in self.subscriptions.iter() {
+                let msg = create_sub_json(sub, "subscribe");
+                // 如果发送失败，说明写入任务刚启动就挂了，循环中会检测到
+                if let Err(_) = msg_tx.send(WsMessage::Text(msg)).await { break; }
             }
         }
 
         let mut heartbeat_timer = interval(Duration::from_secs(HEARTBEAT_INTERVAL));
         heartbeat_timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
+        let return_reason: Option<Cmd>;
+
         loop {
             select! {
-                // A. 处理外部控制命令 (订阅/取消/关闭)
+                // A. 外部命令
                 cmd = self.cmd_rx.recv() => {
                     match cmd {
                         Some(Cmd::Subscribe(sub)) => {
-                            if self.subscriptions.contains(&sub) {
-                                debug!(symbol = %sub.symbol, "忽略重复订阅");
-                            } else {
-                                info!(symbol = %sub.symbol, interval = %sub.interval, "添加新订阅");
-                                if let Err(e) = send_subscribe_msg(&mut write, &sub, "subscribe").await {
-                                    error!(error = ?e, "发送订阅指令失败");
-                                    // 即使发送失败，也要决定是否存入 set？通常建议存入，以便重连时重试
-                                }
+                            if !self.subscriptions.contains(&sub) {
+                                let msg = create_sub_json(&sub, "subscribe");
+                                let _ = msg_tx.send(WsMessage::Text(msg)).await;
                                 self.subscriptions.insert(sub);
                             }
                         }
                         Some(Cmd::Unsubscribe(sub)) => {
                             if self.subscriptions.remove(&sub) {
-                                info!(symbol = %sub.symbol, "取消订阅");
-                                // 尽最大努力发送 unsubscribe，失败也不影响本地移除
-                                let _ = send_subscribe_msg(&mut write, &sub, "unsubscribe").await;
+                                let msg = create_sub_json(&sub, "unsubscribe");
+                                let _ = msg_tx.send(WsMessage::Text(msg)).await;
                             }
                         }
-                        Some(Cmd::Shutdown) => return Some(Cmd::Shutdown),
-                        None => return Some(Cmd::Shutdown), // 发送端都丢弃了，任务结束
+                        Some(Cmd::Shutdown) => {
+                            let _ = msg_tx.send(WsMessage::Close).await;
+                            return_reason = Some(Cmd::Shutdown);
+                            break;
+                        }
+                        None => {
+                            return_reason = Some(Cmd::Shutdown);
+                            break;
+                        }
                     }
                 }
 
-                // B. 心跳保活
+                // B. 心跳
                 _ = heartbeat_timer.tick() => {
-                    let ping = json!({ "op": "ping", "ping": Utc::now().timestamp() }).to_string();
-                    if let Err(e) = write.send(Message::Text(ping)).await {
-                        error!(error = ?e, "心跳发送失败，判定连接断开");
-                        return None;
+                    let ping = json!({ "op": "ping", "ping": Utc::now().timestamp_millis() }).to_string();
+                    if msg_tx.send(WsMessage::Text(ping)).await.is_err() {
+                        return_reason = None;
+                        break;
                     }
                 }
 
-                // C. 处理接收到的 WebSocket 消息
-                msg = read.next() => {
+                // C. 读取消息
+                msg = read_stream.next() => {
                     match msg {
                         Some(Ok(Message::Text(text))) => {
-                             // 关键优化：异步处理消息，不要阻塞主 select 循环
-                             // 如果 handler 计算量大，建议使用 tokio::spawn
-                             let h = self.handler.clone();
-                             tokio::spawn(async move {
-                                 h.handle(&text).await;
-                             });
+                            // 优先处理 JSON 格式的 Ping
+                            if text.contains(r#""op":"ping""#) || text.contains(r#""op": "ping""#) {
+                                let pong = text.replace("ping", "pong");
+                                let _ = msg_tx.send(WsMessage::Text(pong)).await;
+                            } else {
+                                let h = self.handler.clone();
+                                let t_clone = text.clone();
+                                tokio::spawn(async move {
+                                    h.handle(&t_clone).await;
+                                });
+                            }
                         }
-                        Some(Ok(Message::Pong(_))) => { /* 心跳响应 */ }
+                        Some(Ok(Message::Pong(_))) => {}
+                        Some(Ok(Message::Ping(data))) => {
+                            let _ = msg_tx.send(WsMessage::Pong(data)).await;
+                        }
                         Some(Ok(Message::Close(_))) => {
                             warn!("服务端发送 Close 帧");
-                            return None;
+                            return_reason = None;
+                            break;
                         }
                         Some(Err(e)) => {
                             error!(error = ?e, "WebSocket 读取异常");
-                            return None;
+                            return_reason = None;
+                            break;
                         }
                         None => {
-                            warn!("WebSocket EOF (流结束)");
-                            return None;
+                            warn!("WebSocket EOF");
+                            return_reason = None;
+                            break;
                         }
                         _ => {}
                     }
                 }
+
+                // D. 写入任务监控 (注意这里的 &mut)
+                _ = &mut write_abort_rx => {
+                    error!("写入任务意外退出，重置连接");
+                    return_reason = None;
+                    break;
+                }
             }
         }
+
+        let _ = write_handle.await;
+        return_reason
     }
 }
-
-// --- 辅助函数 ---
 
 async fn connect_websocket(wss_domain: &str) -> Result<WsStream> {
     let url = format!("wss://{}/public/", wss_domain);
     debug!(%url, "正在连接...");
-    let (ws, _) = connect_async(&url).await?;
+    let connect_future = connect_async(&url);
+    let (ws, _) = tokio::time::timeout(Duration::from_secs(10), connect_future)
+        .await
+        .map_err(|_| anyhow!("连接超时"))??;
+
     info!("WebSocket 连接已建立");
     Ok(ws)
 }
 
-async fn send_subscribe_msg<S>(write: &mut S, sub: &Subscription, op: &str) -> Result<()>
-where
-    S: SinkExt<Message> + Unpin,
-    S::Error: std::fmt::Debug,
-{
-    let msg = json!({
+fn create_sub_json(sub: &Subscription, op: &str) -> String {
+    json!({
         "op": op,
         "args": [{
             "symbol": sub.symbol,
             "ch": sub.interval,
         }]
-    }).to_string();
-
-    write.send(Message::Text(msg)).await
-        .map_err(|e| anyhow!("写消息失败: {:?}", e))
+    }).to_string()
 }
