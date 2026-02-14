@@ -453,7 +453,7 @@ impl WsRunner {
                     match msg {
 
                         Some(Ok(Message::Text(text))) => {
-
+                            info!("收到原始消息: {}", text);
                             // 优先处理 JSON 格式的 Ping
 
                             if text.contains(r#""op":"ping""#) || text.contains(r#""op": "ping""#) {
@@ -584,7 +584,8 @@ fn create_sub_json(sub: &Subscription, op: &str) -> String {
 
         "args": [{
             "symbol": sub.symbol,
-            "channel": sub.interval,
+            "ch": sub.interval,
+
         }]
 
     }).to_string()
