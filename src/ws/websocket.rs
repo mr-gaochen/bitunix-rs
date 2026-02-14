@@ -189,6 +189,7 @@ impl WsRunner {
                         Some(Cmd::Subscribe(sub)) => {
                             if !self.subscriptions.contains(&sub) {
                                 let msg = create_sub_json(&sub, "subscribe");
+                                info!("Sending subscription message: {:#?}", msg);
                                 let _ = msg_tx.send(WsMessage::Text(msg)).await;
                                 self.subscriptions.insert(sub);
                             }
@@ -196,6 +197,7 @@ impl WsRunner {
                         Some(Cmd::Unsubscribe(sub)) => {
                             if self.subscriptions.remove(&sub) {
                                 let msg = create_sub_json(&sub, "unsubscribe");
+                                info!("Sending unsubscription message: {:#?}", msg);
                                 let _ = msg_tx.send(WsMessage::Text(msg)).await;
                             }
                         }
