@@ -166,12 +166,14 @@ impl WsRunner {
                             let is_new = self.subscriptions.insert(sub.clone());
                             if is_new && is_authenticated {
                                 let msg = create_sub_json(&sub, "subscribe");
+                                info!("Subscribed to {:?}", msg);
                                 let _ = msg_tx.send(WsMessage::Text(msg)).await;
                             }
                         }
                         Some(Cmd::Unsubscribe(sub)) => {
                             if self.subscriptions.remove(&sub) && is_authenticated {
                                 let msg = create_sub_json(&sub, "unsubscribe");
+                                    info!("unsubscribed  to {:?}", msg);
                                 let _ = msg_tx.send(WsMessage::Text(msg)).await;
                             }
                         }
